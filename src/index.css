@@ -166,3 +166,41 @@
   animation: thruster-pulse 0.9s ease-in-out infinite;
   transform-origin: top center;
 }
+
+@keyframes pet-angry-shake {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  15% {
+    transform: translateY(-2px) translateX(-3px) rotate(-3deg);
+  }
+  30% {
+    transform: translateY(1px) translateX(3px) rotate(3deg);
+  }
+  45% {
+    transform: translateY(-3px) translateX(-2px) rotate(-2deg);
+  }
+  60% {
+    transform: translateY(2px) translateX(2px) rotate(2deg);
+  }
+  75% {
+    transform: translateY(-1px) translateX(-2px) rotate(-1deg);
+  }
+  90% {
+    transform: translateY(1px) translateX(2px) rotate(1deg);
+  }
+}
+
+@keyframes anger-vein-pulse {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.85; }
+  50% { transform: scale(1.35) rotate(10deg); opacity: 1; }
+}
+
+.animate-pet-angry-shake {
+  animation: pet-angry-shake 0.8s ease-in-out infinite;
+}
+
+.animate-anger-vein {
+  animation: anger-vein-pulse 0.9s ease-in-out infinite;
+  transform-origin: center;
+}
