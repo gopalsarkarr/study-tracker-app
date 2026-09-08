@@ -32,6 +32,7 @@ export const taskService = {
         priority: taskData.priority || 'Medium',
         weekly_frequency: Number(taskData.weeklyFrequency) || 5,
         specific_days: taskData.specificDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+        link_url: taskData.linkUrl || '',
         is_active: true,
       };
 
@@ -60,6 +61,7 @@ export const taskService = {
         priority: updates.priority,
         weekly_frequency: Number(updates.weeklyFrequency),
         specific_days: updates.specificDays,
+        link_url: updates.linkUrl !== undefined ? updates.linkUrl : undefined,
         updated_at: new Date().toISOString(),
       };
 

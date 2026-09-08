@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStudy } from '../context/StudyContext';
-import { DAYS_OF_WEEK } from '../utils/dateUtils';
-import { X, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { X, Sparkles, Check, AlertCircle, Link2, ExternalLink, Globe } from 'lucide-react';
 
 export default function TaskModal({ isOpen, onClose, initialTask = null, defaultCategoryId = 'skills-study' }) {
   const { categories, addTask, updateTask } = useStudy();
@@ -12,6 +11,7 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
   const [priority, setPriority] = useState('Medium');
   const [weeklyFrequency, setWeeklyFrequency] = useState(5);
   const [specificDays, setSpecificDays] = useState(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+  const [linkUrl, setLinkUrl] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -22,6 +22,7 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
       setPriority(initialTask.priority || 'Medium');
       setWeeklyFrequency(initialTask.weeklyFrequency || 5);
       setSpecificDays(initialTask.specificDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+      setLinkUrl(initialTask.linkUrl || '');
     } else {
       setName('');
       setCategoryId(defaultCategoryId);
@@ -29,6 +30,7 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
       setPriority('Medium');
       setWeeklyFrequency(5);
       setSpecificDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+      setLinkUrl(defaultCategoryId === 'skills-study' ? 'https://leetcode.com/u/gopalsarkar/' : '');
     }
     setError('');
   }, [initialTask, defaultCategoryId, isOpen]);
@@ -72,6 +74,7 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
       priority,
       weeklyFrequency: Number(weeklyFrequency) || specificDays.length,
       specificDays,
+      linkUrl: linkUrl.trim(),
     };
 
     if (initialTask) {
@@ -126,6 +129,52 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
               className="w-full px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
               autoFocus
             />
+          </div>
+
+          {/* Resource / Problem Link URL */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 flex items-center gap-1.5">
+                <Link2 className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Resource / Mission Link (URL)</span>
+              </label>
+              <span className="text-[11px] text-slate-500">Optional</span>
+            </div>
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={e => setLinkUrl(e.target.value)}
+              placeholder="e.g. https://leetcode.com/problems/... or https://youtube.com/watch?v=..."
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs font-mono"
+            />
+            {/* Quick helper shortcuts */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <span className="text-[10px] text-slate-500 font-medium">Quick link:</span>
+              <button
+                type="button"
+                onClick={() => setLinkUrl('https://leetcode.com/u/gopalsarkar/')}
+                className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20"
+              >
+                + My LeetCode
+              </button>
+              <button
+                type="button"
+                onClick={() => setLinkUrl('https://classroom.sheryians.com/')}
+                className="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20"
+              >
+                + Sheryians Class
+              </button>
+              <button
+                type="button"
+                onClick={() => setLinkUrl('https://www.youtube.com')}
+                className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
+              >
+                + YouTube
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 light:text-slate-500 mt-1">
+              You can click this link to solve the problem or watch the video before checking the task complete!
+            </p>
           </div>
 
           {/* Category Select */}

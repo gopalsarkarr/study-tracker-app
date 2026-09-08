@@ -146,6 +146,7 @@ export function StudyProvider({ children }) {
           priority: t.priority,
           weeklyFrequency: Number(t.weekly_frequency),
           specificDays: t.specific_days || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+          linkUrl: t.link_url || t.linkUrl || '',
           createdAt: t.created_at,
         }));
 
@@ -439,6 +440,7 @@ export function StudyProvider({ children }) {
       priority: taskData.priority || 'Medium',
       weeklyFrequency: Number(taskData.weeklyFrequency) || 5,
       specificDays: taskData.specificDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      linkUrl: taskData.linkUrl ? taskData.linkUrl.trim() : '',
       createdAt: getTodayDateString(),
     };
 

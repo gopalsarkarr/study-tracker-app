@@ -10,7 +10,8 @@ import {
   Award, 
   TrendingUp, 
   TrendingDown,
-  CalendarCheck
+  CalendarCheck,
+  ExternalLink
 } from 'lucide-react';
 
 export default function DailyDetailModal({ isOpen, onClose, targetDateISO }) {
@@ -166,6 +167,17 @@ export default function DailyDetailModal({ isOpen, onClose, targetDateISO }) {
                       <span className="font-semibold text-slate-200 light:text-slate-800 truncate">
                         {t.name}
                       </span>
+                      {t.linkUrl && (
+                        <a
+                          href={t.linkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-emerald-400/80 hover:text-emerald-300 p-0.5"
+                          title={`Open ${t.linkUrl}`}
+                        >
+                          <ExternalLink className="w-3 h-3 inline" />
+                        </a>
+                      )}
                     </div>
                     <span className="font-mono text-emerald-400 font-bold shrink-0">
                       +{t.points} pts
@@ -195,6 +207,17 @@ export default function DailyDetailModal({ isOpen, onClose, targetDateISO }) {
                       <span className="text-slate-300 light:text-slate-700 truncate">
                         {t.name}
                       </span>
+                      {t.linkUrl && (
+                        <a
+                          href={t.linkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-400 hover:text-indigo-300 p-0.5"
+                          title={`Open ${t.linkUrl}`}
+                        >
+                          <ExternalLink className="w-3 h-3 inline" />
+                        </a>
+                      )}
                     </div>
                     <button
                       onClick={() => toggleTask(t.id, targetDateISO)}

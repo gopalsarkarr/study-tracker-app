@@ -139,6 +139,7 @@ export const categoryService = {
           priority: t.priority,
           weekly_frequency: t.weeklyFrequency,
           specific_days: t.specificDays,
+          link_url: t.linkUrl || '',
           is_active: true,
         };
       });

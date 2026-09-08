@@ -55,6 +55,7 @@ export const DEFAULT_TASKS = [
     priority: 'High',
     weeklyFrequency: 5,
     specificDays: ['Mon', 'Tue', 'Wed', 'Fri', 'Sat'],
+    linkUrl: 'https://leetcode.com/u/gopalsarkar/',
     createdAt: '2026-08-01',
   },
   {
@@ -65,6 +66,7 @@ export const DEFAULT_TASKS = [
     priority: 'High',
     weeklyFrequency: 5,
     specificDays: ['Mon', 'Tue', 'Thu', 'Fri', 'Sun'],
+    linkUrl: 'https://classroom.sheryians.com/',
     createdAt: '2026-08-01',
   },
   {
@@ -75,6 +77,7 @@ export const DEFAULT_TASKS = [
     priority: 'Medium',
     weeklyFrequency: 3,
     specificDays: ['Tue', 'Thu', 'Sat'],
+    linkUrl: 'https://www.youtube.com/results?search_query=discrete+mathematics+for+computer+science',
     createdAt: '2026-08-01',
   },
   {
@@ -85,6 +88,7 @@ export const DEFAULT_TASKS = [
     priority: 'High',
     weeklyFrequency: 3,
     specificDays: ['Wed', 'Sat', 'Sun'],
+    linkUrl: 'https://github.com/donnemartin/system-design-primer',
     createdAt: '2026-08-01',
   },
   {
@@ -95,6 +99,7 @@ export const DEFAULT_TASKS = [
     priority: 'Medium',
     weeklyFrequency: 3,
     specificDays: ['Mon', 'Wed', 'Fri'],
+    linkUrl: 'https://www.youtube.com/results?search_query=dbms+complete+course+gate',
     createdAt: '2026-08-01',
   },
 

@@ -9,8 +9,10 @@ import {
   Trash2, 
   Clock, 
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
+import { getLinkMetadata } from './BrandIcons';
 
 export const PRIORITY_STYLES = {
   High: {
@@ -41,6 +43,7 @@ export default function TaskCard({ task, onEdit, onDelete }) {
   const category = categoryMap[task.categoryId] || { name: 'General', color: 'indigo' };
   const weeklyProgress = weeklyTaskProgressMap[task.id] || { completedDays: 0, target: task.weeklyFrequency || 5, percentage: 0 };
   const priorityStyle = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.Medium;
+  const linkMeta = getLinkMetadata(task.linkUrl);
 
   // Render specific days nicely
   const scheduleLabel = task.specificDays && task.specificDays.length > 0
@@ -98,6 +101,26 @@ export default function TaskCard({ task, onEdit, onDelete }) {
               +{task.points} Pts
             </div>
           </div>
+
+          {/* Resource / Problem Link - Solve/Watch before checking complete */}
+          {linkMeta && (
+            <div className="mt-2.5">
+              <a
+                href={task.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title={`Open ${linkMeta.platform}: ${task.linkUrl}`}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 group/link ${linkMeta.badgeClass} ${
+                  isCompleted ? 'opacity-70 hover:opacity-100' : ''
+                }`}
+              >
+                <linkMeta.IconComponent className="w-3.5 h-3.5 shrink-0" />
+                <span>{linkMeta.cta}</span>
+                <ExternalLink className="w-3 h-3 opacity-75 group-hover/link:opacity-100 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+              </a>
+            </div>
+          )}
 
           {/* Badges: Category, Priority, Schedule */}
           <div className="flex flex-wrap items-center gap-2 mt-2">

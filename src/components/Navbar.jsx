@@ -20,6 +20,7 @@ import {
   ChevronDown,
   LogIn
 } from 'lucide-react';
+import { LeetCodeIcon, SheryiansIcon, GitHubIcon, YouTubeIcon } from './BrandIcons';
 
 export default function Navbar() {
   const {
@@ -84,8 +85,59 @@ export default function Navbar() {
           </div>
         </div>
 
+        {/* Quick Launchpad / Study Platform Shortcuts */}
+        <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl bg-slate-900/90 dark:bg-slate-900/90 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-sm">
+          {/* LeetCode */}
+          <a
+            href="https://leetcode.com/u/gopalsarkar/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open Gopal's LeetCode Profile"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-amber-400 hover:text-amber-300 hover:bg-amber-500/15 border border-transparent hover:border-amber-500/30 transition-all duration-200 group"
+          >
+            <LeetCodeIcon className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline font-mono">LeetCode</span>
+          </a>
+
+          {/* Sheryians Classroom */}
+          <a
+            href="https://classroom.sheryians.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open Sheryians Coding School Classroom"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 border border-transparent hover:border-rose-500/30 transition-all duration-200 group"
+          >
+            <SheryiansIcon className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline font-mono">Sheryians</span>
+          </a>
+
+          {/* GitHub */}
+          <a
+            href="https://github.com/gopalsarkarr"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open Gopal's GitHub Profile"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 light:hover:bg-slate-200 border border-transparent hover:border-slate-600 transition-all duration-200 group"
+          >
+            <GitHubIcon className="w-4 h-4 text-slate-300 group-hover:scale-110 transition-transform" />
+            <span className="hidden md:inline font-mono">GitHub</span>
+          </a>
+
+          {/* YouTube */}
+          <a
+            href="https://www.youtube.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open YouTube Study Lectures"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/15 border border-transparent hover:border-red-500/30 transition-all duration-200 group"
+          >
+            <YouTubeIcon className="w-4 h-4 text-red-500 group-hover:scale-110 transition-transform" />
+            <span className="hidden md:inline font-mono">YouTube</span>
+          </a>
+        </div>
+
         {/* Center Live HUD stats */}
-        <div className="hidden lg:flex items-center gap-3">
+        <div className="hidden xl:flex items-center gap-3">
           {/* Cloud Sync Status Pill */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 dark:bg-slate-900/90 light:bg-slate-100 border border-slate-800 light:border-slate-200 text-xs">
             <Cloud className="w-3.5 h-3.5 text-emerald-400" />
