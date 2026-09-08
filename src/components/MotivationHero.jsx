@@ -13,6 +13,7 @@ import {
   Layers,
   Compass
 } from 'lucide-react';
+import StudyPet from './StudyPet';
 
 const HERO_IMAGES = [
   {
@@ -263,27 +264,33 @@ export default function MotivationHero() {
 
           </div>
 
-          {/* Interactive Dynamic Call to Action Button */}
-          <button
-            onClick={scrollToTasks}
-            className={`w-full lg:w-auto px-8 py-4 rounded-2xl font-bold text-base shadow-xl flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 ${
-              isTodayPerfect
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/25 ring-2 ring-emerald-400/40'
-                : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-500/30 hover:shadow-indigo-500/50 ring-1 ring-white/20'
-            }`}
-          >
-            {isTodayPerfect ? (
-              <>
-                <Sparkles className="w-5 h-5 text-amber-300 animate-spin" />
-                <span>Mission Completed! 🎉</span>
-              </>
-            ) : (
-              <>
-                <span>Start Today's Mission</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
-          </button>
+          {/* Interactive Dynamic Call to Action Button with Floating Study Pet */}
+          <div className="flex flex-col items-center lg:items-end w-full lg:w-auto relative pt-4 sm:pt-0">
+            {/* Cute Interactive Floating Study Pet Companion */}
+            <StudyPet />
+
+            {/* Main Action Button */}
+            <button
+              onClick={scrollToTasks}
+              className={`w-full lg:w-auto px-8 py-4 rounded-2xl font-bold text-base shadow-xl flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 ${
+                isTodayPerfect
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/25 ring-2 ring-emerald-400/40'
+                  : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-500/30 hover:shadow-indigo-500/50 ring-1 ring-white/20'
+              }`}
+            >
+              {isTodayPerfect ? (
+                <>
+                  <Sparkles className="w-5 h-5 text-amber-300 animate-spin" />
+                  <span>Mission Completed! 🎉</span>
+                </>
+              ) : (
+                <>
+                  <span>Start Today's Mission</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+          </div>
 
         </div>
 
