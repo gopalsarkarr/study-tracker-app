@@ -40,7 +40,7 @@ export default function TaskManager() {
   const [activeTab, setActiveTab] = useState('all'); // 'all' or categoryId
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [defaultCategoryForAdd, setDefaultCategoryForAdd] = useState('skills-study');
+  const [defaultCategoryForAdd, setDefaultCategoryForAdd] = useState('');
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, item: null, type: 'task' });
@@ -61,9 +61,10 @@ export default function TaskManager() {
     return stats;
   }, [categories, tasks, todayRecord]);
 
-  const openAddTask = (catId = 'skills-study') => {
+  const openAddTask = (catId = '') => {
     setEditingTask(null);
-    setDefaultCategoryForAdd(catId);
+    const chosen = catId || (activeTab !== 'all' ? activeTab : categories[0]?.id || '');
+    setDefaultCategoryForAdd(chosen);
     setTaskModalOpen(true);
   };
 
@@ -128,7 +129,7 @@ export default function TaskManager() {
           </button>
 
           <button
-            onClick={() => openAddTask('skills-study')}
+            onClick={() => openAddTask()}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 transition-all transform active:scale-95"
           >
             <Plus className="w-4 h-4" />

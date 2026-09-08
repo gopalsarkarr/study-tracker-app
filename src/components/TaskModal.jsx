@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useStudy } from '../context/StudyContext';
 import { X, Sparkles, Check, AlertCircle, Link2, ExternalLink, Globe } from 'lucide-react';
 
-export default function TaskModal({ isOpen, onClose, initialTask = null, defaultCategoryId = 'skills-study' }) {
+export default function TaskModal({ isOpen, onClose, initialTask = null, defaultCategoryId = '' }) {
   const { categories, addTask, updateTask } = useStudy();
 
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState(defaultCategoryId);
+  const [categoryId, setCategoryId] = useState('');
   const [points, setPoints] = useState(30);
   const [priority, setPriority] = useState('Medium');
   const [weeklyFrequency, setWeeklyFrequency] = useState(5);
@@ -14,26 +14,39 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
   const [linkUrl, setLinkUrl] = useState('');
   const [error, setError] = useState('');
 
+  // Helper to safely resolve a valid category ID from available categories
+  const resolveCategoryId = (requestedId) => {
+    if (requestedId && categories.some(c => c.id === requestedId)) {
+      return requestedId;
+    }
+    const skillCat = categories.find(c => c.isSkillCategory);
+    return skillCat?.id || categories[0]?.id || '';
+  };
+
   useEffect(() => {
+    if (!isOpen) return;
+
     if (initialTask) {
       setName(initialTask.name || '');
-      setCategoryId(initialTask.categoryId || defaultCategoryId);
+      setCategoryId(resolveCategoryId(initialTask.categoryId));
       setPoints(initialTask.points || 30);
       setPriority(initialTask.priority || 'Medium');
       setWeeklyFrequency(initialTask.weeklyFrequency || 5);
       setSpecificDays(initialTask.specificDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
       setLinkUrl(initialTask.linkUrl || '');
     } else {
+      const targetCatId = resolveCategoryId(defaultCategoryId);
+      const matchedCat = categories.find(c => c.id === targetCatId);
       setName('');
-      setCategoryId(defaultCategoryId);
-      setPoints(defaultCategoryId === 'skills-study' ? 35 : 5);
+      setCategoryId(targetCatId);
+      setPoints(matchedCat?.isSkillCategory ? 35 : 15);
       setPriority('Medium');
       setWeeklyFrequency(5);
       setSpecificDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
-      setLinkUrl(defaultCategoryId === 'skills-study' ? 'https://leetcode.com/u/gopalsarkar/' : '');
+      setLinkUrl('');
     }
     setError('');
-  }, [initialTask, defaultCategoryId, isOpen]);
+  }, [initialTask, defaultCategoryId, isOpen, categories]);
 
   if (!isOpen) return null;
 
@@ -185,10 +198,11 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
             <select
               value={categoryId}
               onChange={e => {
-                const newCat = e.target.value;
-                setCategoryId(newCat);
-                if (newCat === 'skills-study' && points < 20) setPoints(35);
-                if (newCat === 'daily-routine' && points > 10) setPoints(5);
+                const newCatId = e.target.value;
+                setCategoryId(newCatId);
+                const selectedCat = categories.find(c => c.id === newCatId);
+                if (selectedCat?.isSkillCategory && points < 20) setPoints(35);
+                if (selectedCat?.name?.includes('Routine') && points > 10) setPoints(5);
               }}
               className="w-full px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 focus:outline-none focus:border-indigo-500 text-sm"
             >

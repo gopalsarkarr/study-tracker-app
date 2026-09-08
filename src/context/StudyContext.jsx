@@ -26,9 +26,34 @@ import confetti from 'canvas-confetti';
 
 const StudyContext = createContext(null);
 
+function getLocalUserCache(userId) {
+  if (!userId) return null;
+  try {
+    const raw = localStorage.getItem(`aura_study_cache_${userId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLocalUserCache(userId, data) {
+  if (!userId) return;
+  try {
+    const existing = getLocalUserCache(userId) || {};
+    localStorage.setItem(`aura_study_cache_${userId}`, JSON.stringify({ ...existing, ...data }));
+  } catch (e) {
+    console.error('Failed to save user cache:', e);
+  }
+}
+
 export function StudyProvider({ children }) {
   const { user } = useAuth();
   const todayISO = useMemo(() => getTodayDateString(), []);
+
+  // Read instant cache for authenticated user to prevent 0.1s old data flash
+  const initialCache = useMemo(() => {
+    return user ? getLocalUserCache(user.id) : null;
+  }, [user?.id]);
 
   // Theme & Audio settings
   const [theme, setTheme] = useState(() => {
@@ -54,16 +79,17 @@ export function StudyProvider({ children }) {
   const [selectedDate, setSelectedDate] = useState(todayISO);
   const [celebration, setCelebration] = useState(null);
 
-  // Entities
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-  const [tasks, setTasks] = useState(DEFAULT_TASKS);
+  // Entities initialized cache-first for zero flicker
+  const [categories, setCategories] = useState(() => initialCache?.categories || DEFAULT_CATEGORIES);
+  const [tasks, setTasks] = useState(() => initialCache?.tasks || DEFAULT_TASKS);
   const [dailyHistory, setDailyHistory] = useState(() => {
+    if (initialCache?.dailyHistory) return initialCache.dailyHistory;
     const { history } = generateRealisticHistory(todayISO, DEFAULT_TASKS, DEFAULT_CATEGORIES);
     return history;
   });
-  const [cloudScore, setCloudScore] = useState({ current_score: 742, highest_score: 770 });
-  const [cloudStreak, setCloudStreak] = useState({ current_streak: 7, longest_streak: 14 });
-  const [achievements, setAchievements] = useState([]);
+  const [cloudScore, setCloudScore] = useState(() => initialCache?.cloudScore || { current_score: 742, highest_score: 770 });
+  const [cloudStreak, setCloudStreak] = useState(() => initialCache?.cloudStreak || { current_streak: 7, longest_streak: 14 });
+  const [achievements, setAchievements] = useState(() => initialCache?.achievements || []);
 
   // Theme sync
   useEffect(() => {
@@ -193,6 +219,16 @@ export function StudyProvider({ children }) {
         setCloudStreak(streak);
         setAchievements(achs);
         setSyncStatus('synced');
+
+        // Persist to instant local cache for zero-flicker on next refresh
+        saveLocalUserCache(user.id, {
+          categories: formattedCats,
+          tasks: formattedTasks,
+          dailyHistory: historyMap,
+          cloudScore: score,
+          cloudStreak: streak,
+          achievements: achs,
+        });
       } catch (err) {
         console.error('Failed to load user cloud data:', err);
         setSyncStatus('error');
@@ -432,10 +468,12 @@ export function StudyProvider({ children }) {
 
   // Add Task (Cloud Synchronized)
   const addTask = useCallback(async (taskData) => {
+    const tempId = 'task-' + Date.now();
+    const chosenCatId = taskData.categoryId || categories[0]?.id || '';
     const newTask = {
-      id: 'task-' + Date.now(),
+      id: tempId,
       name: taskData.name.trim(),
-      categoryId: taskData.categoryId || 'skills-study',
+      categoryId: chosenCatId,
       points: Number(taskData.points) || 25,
       priority: taskData.priority || 'Medium',
       weeklyFrequency: Number(taskData.weeklyFrequency) || 5,
@@ -444,27 +482,43 @@ export function StudyProvider({ children }) {
       createdAt: getTodayDateString(),
     };
 
-    // Optimistic local state update
-    setTasks(prev => [newTask, ...prev]);
+    // Optimistic local state & cache update
+    setTasks(prev => {
+      const updated = [newTask, ...prev];
+      if (user) saveLocalUserCache(user.id, { tasks: updated });
+      return updated;
+    });
     if (soundEnabled) playSound('click', false);
 
     // Save to Supabase Cloud
     if (user) {
       setSyncStatus('syncing');
-      const { task: cloudCreated } = await taskService.createTask(user.id, newTask);
+      const { task: cloudCreated, error } = await taskService.createTask(user.id, newTask);
       if (cloudCreated) {
-        setTasks(prev => prev.map(t => (t.id === newTask.id ? { ...t, id: cloudCreated.id } : t)));
+        setTasks(prev => {
+          const updated = prev.map(t => (t.id === tempId ? {
+            ...t,
+            id: cloudCreated.id,
+            linkUrl: cloudCreated.link_url || newTask.linkUrl || '',
+          } : t));
+          saveLocalUserCache(user.id, { tasks: updated });
+          return updated;
+        });
+      } else {
+        console.error('Failed to create task in Supabase:', error);
       }
       setSyncStatus('synced');
     }
     return newTask;
-  }, [user, soundEnabled]);
+  }, [user, categories, soundEnabled]);
 
   // Update Task (Cloud Synchronized)
   const updateTask = useCallback(async (taskId, updatedData) => {
-    setTasks(prev =>
-      prev.map(t => (t.id === taskId ? { ...t, ...updatedData } : t))
-    );
+    setTasks(prev => {
+      const updated = prev.map(t => (t.id === taskId ? { ...t, ...updatedData } : t));
+      if (user) saveLocalUserCache(user.id, { tasks: updated });
+      return updated;
+    });
     if (soundEnabled) playSound('click', false);
 
     if (user) {
@@ -476,7 +530,11 @@ export function StudyProvider({ children }) {
 
   // Delete Task (Cloud Synchronized)
   const deleteTask = useCallback(async (taskId) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    setTasks(prev => {
+      const updated = prev.filter(t => t.id !== taskId);
+      if (user) saveLocalUserCache(user.id, { tasks: updated });
+      return updated;
+    });
     if (soundEnabled) playSound('click', false);
 
     if (user) {
@@ -488,7 +546,7 @@ export function StudyProvider({ children }) {
 
   // Add Category (Cloud Synchronized)
   const addCategory = useCallback(async (catData) => {
-    const newCat = {
+    let newCat = {
       id: 'cat-' + Date.now(),
       name: catData.name.trim(),
       icon: catData.icon || 'Folder',
@@ -499,24 +557,37 @@ export function StudyProvider({ children }) {
       color: catData.color || 'indigo',
     };
 
-    setCategories(prev => [...prev, newCat]);
-    if (soundEnabled) playSound('click', false);
-
     if (user) {
       setSyncStatus('syncing');
-      const { category: created } = await categoryService.createCategory(user.id, newCat);
+      const { category: created, error } = await categoryService.createCategory(user.id, newCat);
       if (created) {
-        setCategories(prev => prev.map(c => (c.id === newCat.id ? { ...c, id: created.id } : c)));
+        newCat = {
+          ...newCat,
+          id: created.id,
+        };
+      } else {
+        console.error('Failed to save category to Supabase:', error);
       }
       setSyncStatus('synced');
     }
+
+    setCategories(prev => {
+      const updated = [...prev, newCat];
+      if (user) saveLocalUserCache(user.id, { categories: updated });
+      return updated;
+    });
+
+    if (soundEnabled) playSound('click', false);
+    return newCat;
   }, [user, soundEnabled]);
 
   // Update Category
   const updateCategory = useCallback(async (catId, updatedData) => {
-    setCategories(prev =>
-      prev.map(c => (c.id === catId ? { ...c, ...updatedData } : c))
-    );
+    setCategories(prev => {
+      const updated = prev.map(c => (c.id === catId ? { ...c, ...updatedData } : c));
+      if (user) saveLocalUserCache(user.id, { categories: updated });
+      return updated;
+    });
     if (soundEnabled) playSound('click', false);
 
     if (user) {
@@ -528,8 +599,19 @@ export function StudyProvider({ children }) {
 
   // Delete Category
   const deleteCategory = useCallback(async (catId) => {
-    setCategories(prev => prev.filter(c => c.id !== catId));
-    setTasks(prev => prev.filter(t => t.categoryId !== catId));
+    let updatedCats = [];
+    setCategories(prev => {
+      updatedCats = prev.filter(c => c.id !== catId);
+      return updatedCats;
+    });
+    let updatedTasks = [];
+    setTasks(prev => {
+      updatedTasks = prev.filter(t => t.categoryId !== catId);
+      return updatedTasks;
+    });
+    if (user) {
+      saveLocalUserCache(user.id, { categories: updatedCats, tasks: updatedTasks });
+    }
     if (soundEnabled) playSound('click', false);
 
     if (user) {
