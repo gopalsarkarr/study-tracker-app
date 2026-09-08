@@ -95,8 +95,8 @@ export default function ProgressGraph() {
     theme,
   } = useStudy();
 
-  // Active timeframe state: default 'total' (100 days)
-  const [timeframe, setTimeframe] = useState('total');
+  // Active timeframe state: default 'weekly' (7 days)
+  const [timeframe, setTimeframe] = useState('weekly');
 
   const currentTfConfig = useMemo(() => {
     return TIMEFRAMES.find(t => t.id === timeframe) || TIMEFRAMES[3];

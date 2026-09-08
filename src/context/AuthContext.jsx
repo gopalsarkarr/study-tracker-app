@@ -76,9 +76,9 @@ export function AuthProvider({ children }) {
   }, [fetchUserProfile]);
 
   // Sign up
-  const signUp = useCallback(async ({ email, password, fullName }) => {
+  const signUp = useCallback(async ({ email, password, fullName, username }) => {
     setAuthError(null);
-    const { data, error } = await authService.signUp({ email, password, fullName });
+    const { data, error } = await authService.signUp({ email, password, fullName, username });
     if (error) {
       setAuthError(error);
       return { success: false, error };
@@ -91,17 +91,18 @@ export function AuthProvider({ children }) {
     return { success: true, data };
   }, [fetchUserProfile]);
 
-  // Log in
-  const login = useCallback(async ({ email, password }) => {
+  // Log in (supports either Username OR Email)
+  const login = useCallback(async ({ identifier, email, password }) => {
     setAuthError(null);
-    const { data, error } = await authService.signIn({ email, password });
+    const input = identifier || email;
+    const { data, error } = await authService.signIn({ identifier: input, password });
     if (error) {
       setAuthError(error);
       return { success: false, error };
     }
     if (data?.user) {
       setUser(data.user);
-      await fetchUserProfile(data.user.id, data.user.user_metadata?.full_name, email);
+      await fetchUserProfile(data.user.id, data.user.user_metadata?.full_name, data.user.email);
       setIsAuthModalOpen(false);
     }
     return { success: true, data };

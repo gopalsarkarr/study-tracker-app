@@ -26,7 +26,9 @@ export default function AuthModal() {
     isConfigured,
   } = useAuth();
 
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -42,14 +44,14 @@ export default function AuthModal() {
     setClientError('');
     setResetSuccess(false);
 
-    if (!email.trim()) {
-      setClientError('Please provide a valid email address.');
-      return;
-    }
-
     if (authModalTab === 'forgot') {
+      const resetTarget = (email || loginIdentifier).trim();
+      if (!resetTarget || !resetTarget.includes('@')) {
+        setClientError('Please provide a valid email address to receive reset instructions.');
+        return;
+      }
       setIsSubmitting(true);
-      const res = await resetPassword(email);
+      const res = await resetPassword(resetTarget);
       setIsSubmitting(false);
       if (res.success) {
         setResetSuccess(true);
@@ -67,6 +69,26 @@ export default function AuthModal() {
         setClientError('Full name is required.');
         return;
       }
+
+      const cleanUname = username.trim().toLowerCase();
+      if (!cleanUname) {
+        setClientError('Username is required.');
+        return;
+      }
+      if (cleanUname.length < 3) {
+        setClientError('Username must be at least 3 characters.');
+        return;
+      }
+      if (!/^[a-z0-9_.]+$/.test(cleanUname)) {
+        setClientError('Username can only contain letters, numbers, underscores, and dots.');
+        return;
+      }
+
+      if (!email.trim() || !email.includes('@')) {
+        setClientError('Please provide a valid Gmail or email address.');
+        return;
+      }
+
       if (password.length < 6) {
         setClientError('Password must be at least 6 characters.');
         return;
@@ -77,11 +99,16 @@ export default function AuthModal() {
       }
 
       setIsSubmitting(true);
-      await signUp({ email, password, fullName });
+      await signUp({ email, password, fullName, username: cleanUname });
       setIsSubmitting(false);
     } else {
+      // Login flow
+      if (!loginIdentifier.trim()) {
+        setClientError('Please enter your username or email address.');
+        return;
+      }
       setIsSubmitting(true);
-      await login({ email, password });
+      await login({ identifier: loginIdentifier.trim(), password });
       setIsSubmitting(false);
     }
   };
@@ -179,7 +206,7 @@ export default function AuthModal() {
                   type="text"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
-                  placeholder="e.g. Alex Turing"
+                  placeholder="e.g. Gopal Sarkar"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
                   required
                 />
@@ -187,23 +214,93 @@ export default function AuthModal() {
             </div>
           )}
 
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1">
-              Email Address
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="name@university.edu or user@gmail.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
-                required
-              />
+          {/* Username for Signup */}
+          {authModalTab === 'signup' && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600">
+                  Username
+                </label>
+                <span className="text-[10px] text-indigo-400 font-mono font-semibold">
+                  Quick Login ID
+                </span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-xs font-mono font-bold text-slate-500">@</span>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+                  placeholder="e.g. gopalsarkar or dev_gopal"
+                  className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500 font-mono"
+                  required
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                You can use this username anytime with your password to log in.
+              </p>
             </div>
-          </div>
+          )}
+
+          {/* Actual Email for Signup */}
+          {authModalTab === 'signup' && (
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1">
+                Actual Gmail / Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="yourname@gmail.com"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Username or Email for Login */}
+          {authModalTab === 'login' && (
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1">
+                Username or Email Address
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  value={loginIdentifier}
+                  onChange={e => setLoginIdentifier(e.target.value)}
+                  placeholder="Username (e.g. gopalsarkar) or Gmail"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Email for Forgot Password */}
+          {authModalTab === 'forgot' && (
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1">
+                Registered Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="yourname@gmail.com"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+            </div>
+          )}
 
           {/* Password (if not forgot) */}
           {authModalTab !== 'forgot' && (
