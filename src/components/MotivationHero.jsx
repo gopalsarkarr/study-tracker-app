@@ -202,17 +202,24 @@ export default function MotivationHero() {
 
         </div>
 
-        {/* Center: Powerful Motivational Headlines */}
-        <div className="my-8 max-w-3xl">
-          <p className="text-sm sm:text-base font-semibold text-indigo-400 tracking-wide uppercase mb-2 flex items-center gap-2">
-            <span>{timeContext.timeQuote}</span>
-          </p>
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight drop-shadow-md">
-            {dynamicQuote.headline}
-          </h1>
-          <p className="mt-3 text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed drop-shadow">
-            {dynamicQuote.detail}
-          </p>
+        {/* Center: Powerful Motivational Headlines + Target Vision Photo Card (Placed ABOVE the separator line) */}
+        <div className="my-6 sm:my-8 flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6">
+          <div className="max-w-2xl">
+            <p className="text-sm sm:text-base font-semibold text-indigo-400 tracking-wide uppercase mb-2 flex items-center gap-2">
+              <span>{timeContext.timeQuote}</span>
+            </p>
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight drop-shadow-md">
+              {dynamicQuote.headline}
+            </h1>
+            <p className="mt-3 text-sm sm:text-base text-slate-300 max-w-xl leading-relaxed drop-shadow">
+              {dynamicQuote.detail}
+            </p>
+          </div>
+
+          {/* Target Vision Photo Card: Placed ABOVE the line, to the left of where Nova floats */}
+          <div id="hero-vision-card" className="w-full sm:w-auto flex justify-center lg:justify-end self-center lg:self-end lg:mr-72 xl:mr-80 shrink-0">
+            <HeroVisionCard />
+          </div>
         </div>
 
         {/* Bottom Section: Personalized Progress Summary HUD + Call To Action */}
@@ -265,40 +272,32 @@ export default function MotivationHero() {
 
           </div>
 
-          {/* Right Group: Target Vision Photo Card (placed to the left & slightly above the Pet) + Pet & Action Button */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-end justify-center lg:justify-end gap-3 sm:gap-4 w-full lg:w-auto">
-            {/* Target Vision Card placed to the left and slightly above the pet */}
-            <div id="hero-vision-card" className="w-full sm:w-auto flex justify-center sm:justify-end sm:-translate-y-2">
-              <HeroVisionCard />
-            </div>
+          {/* Interactive Dynamic Call to Action Button with Floating Study Pet */}
+          <div className="flex flex-col items-center lg:items-end w-full lg:w-auto relative pt-4 sm:pt-0">
+            {/* Cute Interactive Floating Study Pet Companion */}
+            <StudyPet />
 
-            {/* Interactive Dynamic Call to Action Button with Floating Study Pet */}
-            <div className="flex flex-col items-center lg:items-end w-full sm:w-auto relative pt-4 sm:pt-0">
-              {/* Cute Interactive Floating Study Pet Companion */}
-              <StudyPet />
-
-              {/* Main Action Button */}
-              <button
-                onClick={scrollToTasks}
-                className={`w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base shadow-xl flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 ${
-                  isTodayPerfect
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/25 ring-2 ring-emerald-400/40'
-                    : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-500/30 hover:shadow-indigo-500/50 ring-1 ring-white/20'
-                }`}
-              >
-                {isTodayPerfect ? (
-                  <>
-                    <Sparkles className="w-5 h-5 text-amber-300 animate-spin" />
-                    <span>Mission Completed! 🎉</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Start Today's Mission</span>
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Main Action Button */}
+            <button
+              onClick={scrollToTasks}
+              className={`w-full lg:w-auto px-8 py-4 rounded-2xl font-bold text-base shadow-xl flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 ${
+                isTodayPerfect
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-emerald-500/25 ring-2 ring-emerald-400/40'
+                  : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-500/30 hover:shadow-indigo-500/50 ring-1 ring-white/20'
+              }`}
+            >
+              {isTodayPerfect ? (
+                <>
+                  <Sparkles className="w-5 h-5 text-amber-300 animate-spin" />
+                  <span>Mission Completed! 🎉</span>
+                </>
+              ) : (
+                <>
+                  <span>Start Today's Mission</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
           </div>
 
         </div>

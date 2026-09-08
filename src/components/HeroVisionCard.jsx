@@ -59,7 +59,7 @@ export default function HeroVisionCard() {
     return (
       <div 
         onClick={scrollToManager}
-        className="w-full sm:w-60 md:w-64 p-3 rounded-2xl bg-slate-950/80 backdrop-blur-xl border border-dashed border-indigo-500/40 text-center cursor-pointer hover:border-indigo-400 transition-all group/card shadow-xl mb-3 sm:mb-0 sm:self-start"
+        className="w-64 sm:w-72 p-3 rounded-2xl bg-slate-950/80 backdrop-blur-xl border border-dashed border-indigo-500/40 text-center cursor-pointer hover:border-indigo-400 transition-all group/card shadow-xl"
       >
         <div className="w-10 h-10 mx-auto rounded-xl bg-indigo-500/15 flex items-center justify-center text-indigo-400 mb-2 group-hover/card:scale-110 transition-transform">
           <ImageIcon className="w-5 h-5" />
@@ -72,7 +72,7 @@ export default function HeroVisionCard() {
 
   return (
     <div 
-      className="relative w-full sm:w-60 md:w-64 p-2 rounded-2xl bg-slate-950/85 backdrop-blur-xl border border-slate-700/80 shadow-2xl transition-all duration-300 hover:border-indigo-500/70 hover:shadow-indigo-500/15 group/vision mb-3 sm:mb-2 sm:self-start"
+      className="relative w-64 sm:w-72 p-2.5 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-slate-700/80 shadow-2xl transition-all duration-300 hover:border-indigo-500/70 hover:shadow-indigo-500/15 group/vision cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={scrollToManager}
@@ -80,9 +80,9 @@ export default function HeroVisionCard() {
     >
       {/* Top Floating Badge & Navigation Arrows */}
       <div className="flex items-center justify-between gap-1 pb-1.5 px-1">
-        <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-300 font-mono">
-          <Target className="w-3 h-3 text-indigo-400 animate-pulse" />
-          <span className="truncate max-w-[120px]">{currentPhoto.tag || 'TARGET GOAL'}</span>
+        <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-300 font-mono">
+          <Target className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+          <span>TARGET GOAL</span>
         </div>
 
         {/* Carousel arrows if more than 1 photo */}
