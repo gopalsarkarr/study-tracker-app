@@ -7,6 +7,7 @@ import Speedometer from './components/Speedometer';
 import TaskManager from './components/TaskManager';
 import ProgressGraph from './components/ProgressGraph';
 import ActivityCalendar from './components/ActivityCalendar';
+import VisionGalleryManager from './components/VisionGalleryManager';
 import CelebrationModal from './components/CelebrationModal';
 import AuthModal from './components/auth/AuthModal';
 import AuthScreen from './components/auth/AuthScreen';
@@ -135,6 +136,9 @@ function DashboardContent() {
 
         {/* 5. Monthly Study Activity Calendar (Heatmap Grid + Detail Modal) */}
         <ActivityCalendar />
+
+        {/* 6. Target Vision Board & Motivation Photo Gallery Manager */}
+        <VisionGalleryManager />
 
       </main>
 

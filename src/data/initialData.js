@@ -272,3 +272,30 @@ export function generateRealisticHistory(todayDateStr, tasks = DEFAULT_TASKS, ca
 
   return { history, finalScore: currentScore, streak: 7 };
 }
+
+export const DEFAULT_VISION_PHOTOS = [
+  {
+    id: 'vision-1',
+    title: 'Top Tier Software Engineer Dream',
+    caption: 'One year of relentless focus and consistency will change your entire life. Never give up!',
+    imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
+    tag: 'Future Goal 🚀',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vision-2',
+    title: 'Deep Late-Night Algorithmic Mastery',
+    caption: 'Solve the hard problems in silence. Your results will roar louder than words.',
+    imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
+    tag: 'LeetCode & DSA 🧠',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'vision-3',
+    title: 'Dream Minimalist Coding Setup',
+    caption: 'Clean code, dual displays, zero distractions. The summit belongs to the disciplined.',
+    imageUrl: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80',
+    tag: 'Dream Setup 💻',
+    createdAt: new Date().toISOString(),
+  },
+];

@@ -11,6 +11,7 @@ import {
 import {
   DEFAULT_CATEGORIES,
   DEFAULT_TASKS,
+  DEFAULT_VISION_PHOTOS,
   generateRealisticHistory,
 } from '../data/initialData';
 import { calculateDailyScoreDelta } from '../utils/scoringEngine';
@@ -90,6 +91,25 @@ export function StudyProvider({ children }) {
   const [cloudScore, setCloudScore] = useState(() => initialCache?.cloudScore || { current_score: 742, highest_score: 770 });
   const [cloudStreak, setCloudStreak] = useState(() => initialCache?.cloudStreak || { current_streak: 7, longest_streak: 14 });
   const [achievements, setAchievements] = useState(() => initialCache?.achievements || []);
+
+  // Target Vision Board & Motivation Photos state
+  const [visionPhotos, setVisionPhotos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aura_vision_photos_v1');
+      return saved ? JSON.parse(saved) : DEFAULT_VISION_PHOTOS;
+    } catch {
+      return DEFAULT_VISION_PHOTOS;
+    }
+  });
+
+  const [activeVisionIndex, setActiveVisionIndex] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aura_active_vision_idx');
+      return saved !== null ? JSON.parse(saved) : 0;
+    } catch {
+      return 0;
+    }
+  });
 
   // Theme sync
   useEffect(() => {
@@ -645,6 +665,67 @@ export function StudyProvider({ children }) {
     setCelebration(null);
   }, []);
 
+  // Vision Photos Handlers
+  const addVisionPhoto = useCallback((photoData) => {
+    const newPhoto = {
+      id: 'vision-' + Date.now(),
+      title: photoData.title?.trim() || 'My Target Goal',
+      caption: photoData.caption?.trim() || 'Work hard in silence, let your results speak.',
+      imageUrl: photoData.imageUrl?.trim() || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
+      tag: photoData.tag?.trim() || 'Goal 🎯',
+      createdAt: new Date().toISOString(),
+    };
+
+    setVisionPhotos(prev => {
+      const updated = [newPhoto, ...prev];
+      try {
+        localStorage.setItem('aura_vision_photos_v1', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    setActiveVisionIndex(0);
+    try {
+      localStorage.setItem('aura_active_vision_idx', JSON.stringify(0));
+    } catch (e) {}
+
+    if (soundEnabled) playSound('complete', false);
+    return newPhoto;
+  }, [soundEnabled]);
+
+  const updateVisionPhoto = useCallback((id, updatedData) => {
+    setVisionPhotos(prev => {
+      const updated = prev.map(p => (p.id === id ? { ...p, ...updatedData } : p));
+      try {
+        localStorage.setItem('aura_vision_photos_v1', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    if (soundEnabled) playSound('click', false);
+  }, [soundEnabled]);
+
+  const deleteVisionPhoto = useCallback((id) => {
+    setVisionPhotos(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      try {
+        localStorage.setItem('aura_vision_photos_v1', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    setActiveVisionIndex(0);
+    try {
+      localStorage.setItem('aura_active_vision_idx', JSON.stringify(0));
+    } catch (e) {}
+    if (soundEnabled) playSound('click', false);
+  }, [soundEnabled]);
+
+  const handleSetActiveVisionIndex = useCallback((idx) => {
+    setActiveVisionIndex(idx);
+    try {
+      localStorage.setItem('aura_active_vision_idx', JSON.stringify(idx));
+    } catch (e) {}
+  }, []);
+
   const value = {
     // Theme & Audio
     theme,
@@ -666,6 +747,14 @@ export function StudyProvider({ children }) {
     categoryMap,
     dailyHistory,
     achievements,
+
+    // Target Vision Board Photos
+    visionPhotos,
+    activeVisionIndex,
+    addVisionPhoto,
+    updateVisionPhoto,
+    deleteVisionPhoto,
+    setActiveVisionIndex: handleSetActiveVisionIndex,
 
     // Today's Computed
     todayScheduledTasks,
