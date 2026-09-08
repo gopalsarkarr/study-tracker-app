@@ -144,17 +144,24 @@ export function getMonthCalendarGrid(year, monthIndex) {
 }
 
 /**
- * Get past 30 days up to a target date (inclusive)
+ * Get past N days up to a target date (inclusive)
  */
-export function getLast30Days(targetDate = new Date()) {
+export function getLastNDays(targetDate = new Date(), count = 100) {
   const dates = [];
   const curr = new Date(targetDate);
-  for (let i = 29; i >= 0; i--) {
+  for (let i = count - 1; i >= 0; i--) {
     const d = new Date(curr);
     d.setDate(d.getDate() - i);
     dates.push(getISODate(d));
   }
   return dates;
+}
+
+/**
+ * Get past 30 days up to a target date (inclusive)
+ */
+export function getLast30Days(targetDate = new Date()) {
+  return getLastNDays(targetDate, 30);
 }
 
 /**

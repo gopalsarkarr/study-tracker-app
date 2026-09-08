@@ -181,19 +181,19 @@ export const DEFAULT_TASKS = [
 ];
 
 /**
- * Generate 30 days of realistic history leading up to target date
+ * Generate 100 days of realistic history leading up to target date
  */
-export function generateRealisticHistory(todayDateStr, tasks = DEFAULT_TASKS, categories = DEFAULT_CATEGORIES) {
+export function generateRealisticHistory(todayDateStr, tasks = DEFAULT_TASKS, categories = DEFAULT_CATEGORIES, totalDays = 100) {
   const categoryMap = {};
   categories.forEach(c => { categoryMap[c.id] = c; });
 
   const history = {};
   const targetDate = parseISODate(todayDateStr);
 
-  let currentScore = 520; // Starting credit score 30 days ago
+  let currentScore = 480; // Starting credit score 100 days ago
   let runningStreak = 0;
 
-  for (let i = 29; i >= 0; i--) {
+  for (let i = totalDays - 1; i >= 0; i--) {
     const d = new Date(targetDate);
     d.setDate(d.getDate() - i);
     const iso = getISODate(d);
@@ -212,8 +212,8 @@ export function generateRealisticHistory(todayDateStr, tasks = DEFAULT_TASKS, ca
     } else {
       // Historical completion patterns:
       // i = 1 to 7 (Last 7 days): Consistent strong streak! (75% to 100%)
-      // i = 8: Missed day (0% or low completion) to show realistic resilience
-      // i = 9 to 29: Good progress with varied completion
+      // i = 8, 33, 65: Missed days to show realistic resilience
+      // Other days: Consistent compounding study (65% - 90%)
       if (i <= 7) {
         // High performance days in the active 7-day streak
         if (i === 1 || i === 4 || i === 6) {
@@ -223,15 +223,15 @@ export function generateRealisticHistory(todayDateStr, tasks = DEFAULT_TASKS, ca
           // 75%-85% completion
           completedIds = scheduled.filter((_, idx) => idx % 4 !== 0).map(t => t.id);
         }
-      } else if (i === 8) {
-        // Missed day 8 days ago
+      } else if (i === 8 || i === 33 || i === 65) {
+        // Missed day
         completedIds = [];
-      } else if (i === 14 || i === 22) {
+      } else if (i === 14 || i === 22 || i === 52 || i === 81) {
         // Light day
         completedIds = scheduled.slice(0, 1).map(t => t.id);
       } else {
         // General consistent study
-        completedIds = scheduled.filter((_, idx) => idx % 3 !== 1).map(t => t.id);
+        completedIds = scheduled.filter((_, idx) => (idx + i) % 5 !== 0).map(t => t.id);
       }
     }
 

@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStudy } from '../context/StudyContext';
-import { getLast30Days, formatShortDate } from '../utils/dateUtils';
+import { getLastNDays, formatShortDate } from '../utils/dateUtils';
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -9,13 +9,20 @@ import {
   YAxis, 
   Tooltip, 
   CartesianGrid,
-  ReferenceDot,
-  ReferenceLine
+  ReferenceDot
 } from 'recharts';
-import { TrendingUp, Flame, Calendar, Award, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Flame, Award, Calendar, BarChart3 } from 'lucide-react';
+
+// Timeframe Filter Presets
+const TIMEFRAMES = [
+  { id: 'weekly', label: 'Weekly', subLabel: '7D', days: 7, interval: 0 },
+  { id: 'monthly', label: 'Monthly', subLabel: '30D', days: 30, interval: 2 },
+  { id: '50days', label: 'Last 50 Days', subLabel: '50D', days: 50, interval: 4 },
+  { id: 'total', label: 'Total (100 Days)', subLabel: '100D', days: 100, interval: 9 },
+];
 
 // Custom Tooltip component for Recharts
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -88,9 +95,16 @@ export default function ProgressGraph() {
     theme,
   } = useStudy();
 
-  // Generate 30 days data
-  const { chartData, totalActiveDays, isDay30Completed } = useMemo(() => {
-    const dates = getLast30Days(new Date());
+  // Active timeframe state: default 'total' (100 days)
+  const [timeframe, setTimeframe] = useState('total');
+
+  const currentTfConfig = useMemo(() => {
+    return TIMEFRAMES.find(t => t.id === timeframe) || TIMEFRAMES[3];
+  }, [timeframe]);
+
+  // Generate chart data based on selected timeframe
+  const { chartData, totalActiveDays, isFinalMilestoneMet } = useMemo(() => {
+    const dates = getLastNDays(new Date(), currentTfConfig.days);
     let activeDaysCount = 0;
 
     const data = dates.map((iso, idx) => {
@@ -109,12 +123,30 @@ export default function ProgressGraph() {
         activeDaysCount++;
       }
 
-      // 30-Day Milestones
+      // Milestones depending on timeframe
       let milestone = null;
-      if (dayIndex === 7) milestone = 'First Week Complete';
-      if (dayIndex === 15) milestone = 'Halfway There (Day 15)';
-      if (dayIndex === 21) milestone = 'Three Week Streak (Day 21)';
-      if (dayIndex === 30) milestone = '30-Day Challenge Complete 🎉';
+      if (currentTfConfig.days === 100) {
+        if (dayIndex === 7) milestone = 'First Week Complete (Day 7)';
+        if (dayIndex === 30) milestone = 'Habit Solidified (Day 30)';
+        if (dayIndex === 50) milestone = 'Half-Century Reached (Day 50)';
+        if (dayIndex === 100) milestone = '100-Day Mastery Complete 🎉';
+      } else if (currentTfConfig.days === 50) {
+        if (dayIndex === 10) milestone = 'First 10 Days (Day 10)';
+        if (dayIndex === 25) milestone = 'Midway Point (Day 25)';
+        if (dayIndex === 40) milestone = 'High Momentum (Day 40)';
+        if (dayIndex === 50) milestone = '50-Day Century Half 🎉';
+      } else if (currentTfConfig.days === 30) {
+        if (dayIndex === 7) milestone = 'First Week Complete (Day 7)';
+        if (dayIndex === 15) milestone = 'Halfway There (Day 15)';
+        if (dayIndex === 21) milestone = 'Three Week Streak (Day 21)';
+        if (dayIndex === 30) milestone = '30-Day Challenge Complete 🎉';
+      } else {
+        // Weekly (7 days)
+        if (dayIndex === 1) milestone = 'Week Kickoff (Day 1)';
+        if (dayIndex === 3) milestone = 'Mid-Week Rhythm (Day 3)';
+        if (dayIndex === 5) milestone = 'Discipline Locked (Day 5)';
+        if (dayIndex === 7) milestone = '7-Day Champion 🎉';
+      }
 
       return {
         dayIndex,
@@ -129,32 +161,90 @@ export default function ProgressGraph() {
       };
     });
 
-    const day30 = data[data.length - 1];
-    const is30Done = day30 && day30.completionPercentage >= 70;
+    const lastDay = data[data.length - 1];
+    const isDone = lastDay && lastDay.completionPercentage >= 70;
 
-    return { chartData: data, totalActiveDays: activeDaysCount, isDay30Completed: is30Done };
-  }, [dailyHistory, todayISO]);
+    return { chartData: data, totalActiveDays: activeDaysCount, isFinalMilestoneMet: isDone };
+  }, [dailyHistory, todayISO, currentTfConfig]);
+
+  // Milestone cards based on timeframe
+  const milestoneCards = useMemo(() => {
+    if (currentTfConfig.days === 100) {
+      return [
+        { day: 7, label: 'Day 7: First Week', status: 'Complete' },
+        { day: 30, label: 'Day 30: Habit Formed', status: 'Solidified' },
+        { day: 50, label: 'Day 50: Half-Century', status: 'Reached' },
+        { day: 100, label: 'Day 100: Century Master', status: isFinalMilestoneMet ? 'Mastered 🏆' : 'In Progress 🚀' },
+      ];
+    }
+    if (currentTfConfig.days === 50) {
+      return [
+        { day: 10, label: 'Day 10: Foundation', status: 'Solid' },
+        { day: 25, label: 'Day 25: Midpoint', status: 'Reached' },
+        { day: 40, label: 'Day 40: High Output', status: 'Locked' },
+        { day: 50, label: 'Day 50: Peak Goal', status: isFinalMilestoneMet ? 'Achieved 🏆' : 'In Progress 🚀' },
+      ];
+    }
+    if (currentTfConfig.days === 30) {
+      return [
+        { day: 7, label: 'Day 7: First Week', status: 'Complete' },
+        { day: 15, label: 'Day 15: Halfway', status: 'Reached' },
+        { day: 21, label: 'Day 21: Habit Locked', status: 'Solidified' },
+        { day: 30, label: 'Day 30: Challenge', status: isFinalMilestoneMet ? 'Mastered 🏆' : 'In Progress 🚀' },
+      ];
+    }
+    return [
+      { day: 1, label: 'Day 1: Kickoff', status: 'Done' },
+      { day: 3, label: 'Day 3: Momentum', status: 'Built' },
+      { day: 5, label: 'Day 5: Consistency', status: 'Strong' },
+      { day: 7, label: 'Day 7: Week Finisher', status: isFinalMilestoneMet ? 'Victory 🏆' : 'In Progress 🚀' },
+    ];
+  }, [currentTfConfig.days, isFinalMilestoneMet]);
 
   const isDark = theme === 'dark';
 
   return (
     <div className="bg-slate-900/90 dark:bg-slate-900/90 light:bg-white rounded-3xl p-6 sm:p-8 border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl backdrop-blur-xl mb-10 transition-all">
       
-      {/* Top Header Row with Summary Statistics */}
+      {/* Top Header Row with Title, Timeframe Switcher & Summary Statistics */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 mb-6 border-b border-slate-800/80 dark:border-slate-800/80 light:border-slate-200">
         
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white light:text-slate-900">
-              30-Day Study Progress Graph
+              100-Day Study Progress Graph
             </h2>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/20">
-              Cumulative Growth
+              {currentTfConfig.label} ({currentTfConfig.subLabel})
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 light:text-slate-600 mt-1">
             Tracking your consistency, cumulative discipline, and cognitive compound interest.
           </p>
+
+          {/* Timeframe Selector Pill Buttons */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-3.5">
+            <span className="text-xs font-semibold text-slate-400 light:text-slate-600 mr-1 flex items-center gap-1">
+              <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Range:</span>
+            </span>
+            {TIMEFRAMES.map(tf => {
+              const isActive = tf.id === timeframe;
+              return (
+                <button
+                  key={tf.id}
+                  onClick={() => setTimeframe(tf.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105'
+                      : 'bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-100 text-slate-400 hover:text-white light:hover:text-slate-900 border border-slate-800 light:border-slate-300'
+                  }`}
+                >
+                  {tf.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* 4 Summary Stats */}
@@ -178,7 +268,7 @@ export default function ProgressGraph() {
           <div className="bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-50 p-3 rounded-2xl border border-slate-800/80 light:border-slate-200 text-center">
             <div className="text-[11px] text-slate-400 font-medium">Days Active</div>
             <div className="text-lg font-bold font-mono text-slate-200 light:text-slate-800">
-              {totalActiveDays} / 30
+              {totalActiveDays} / {currentTfConfig.days}
             </div>
           </div>
 
@@ -193,23 +283,18 @@ export default function ProgressGraph() {
 
       </div>
 
-      {/* 30-Day Milestone Badges Bar */}
+      {/* Dynamic Milestone Badges Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-        {[
-          { day: 7, label: 'Day 7: First Week', status: 'Complete' },
-          { day: 15, label: 'Day 15: Halfway', status: 'Reached' },
-          { day: 21, label: 'Day 21: Habit Locked', status: 'Solidified' },
-          { day: 30, label: 'Day 30: Challenge', status: isDay30Completed ? 'Mastered 🏆' : 'In Progress 🚀' },
-        ].map(m => (
+        {milestoneCards.map(m => (
           <div
             key={m.day}
             className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 border border-slate-800/60 light:border-slate-200 text-xs"
           >
             <div className="flex items-center gap-2">
-              <Award className="w-3.5 h-3.5 text-amber-400" />
-              <span className="font-semibold text-slate-300 light:text-slate-700">{m.label}</span>
+              <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="font-semibold text-slate-300 light:text-slate-700 truncate">{m.label}</span>
             </div>
-            <span className="text-[10px] font-mono text-emerald-400 font-semibold">{m.status}</span>
+            <span className="text-[10px] font-mono text-emerald-400 font-semibold shrink-0 ml-1">{m.status}</span>
           </div>
         ))}
       </div>
@@ -238,7 +323,7 @@ export default function ProgressGraph() {
               axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
               tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 11, fontFamily: 'JetBrains Mono' }}
               tickFormatter={val => `D${val}`}
-              interval={2}
+              interval={currentTfConfig.interval}
             />
 
             <YAxis
@@ -282,7 +367,7 @@ export default function ProgressGraph() {
           <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-ping" />
           Highlighted Dot = Today
         </span>
-        <span>Day 30: Compounded Mastery →</span>
+        <span>Day {currentTfConfig.days}: Compounded Mastery →</span>
       </div>
 
     </div>

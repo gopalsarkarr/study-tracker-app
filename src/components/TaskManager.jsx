@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useStudy } from '../context/StudyContext';
+import { isTaskScheduledForDay } from '../utils/dateUtils';
 import TaskCard from './TaskCard';
 import TaskModal from './TaskModal';
 import CategoryModal from './CategoryModal';
@@ -15,7 +16,9 @@ import {
   CheckCircle2, 
   Calendar,
   Layers,
-  Filter
+  Filter,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -38,6 +41,8 @@ export default function TaskManager() {
   } = useStudy();
 
   const [activeTab, setActiveTab] = useState('all'); // 'all' or categoryId
+  const [showInactiveGlobal, setShowInactiveGlobal] = useState(false);
+  const [expandedCategoryInactive, setExpandedCategoryInactive] = useState({});
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [defaultCategoryForAdd, setDefaultCategoryForAdd] = useState('');
@@ -45,21 +50,38 @@ export default function TaskManager() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, item: null, type: 'task' });
 
-  // Calculate statistics per category for today
+  // Toggle inactive tasks visibility for a specific category
+  const toggleCategoryInactive = (catId) => {
+    setExpandedCategoryInactive(prev => ({
+      ...prev,
+      [catId]: !prev[catId],
+    }));
+  };
+
+  // Count total inactive/off-day missions today across all tasks
+  const totalInactiveCount = useMemo(() => {
+    return tasks.filter(t => !isTaskScheduledForDay(t, todayISO)).length;
+  }, [tasks, todayISO]);
+
+  // Calculate statistics per category for today (active vs completed)
   const categoryStats = useMemo(() => {
     const stats = {};
     categories.forEach(cat => {
       const catTasks = tasks.filter(t => t.categoryId === cat.id);
-      const completedCatTasks = catTasks.filter(t => todayRecord.completedTaskIds?.includes(t.id));
+      const activeTasks = catTasks.filter(t => isTaskScheduledForDay(t, todayISO));
+      const inactiveTasks = catTasks.filter(t => !isTaskScheduledForDay(t, todayISO));
+      const completedCatTasks = activeTasks.filter(t => todayRecord.completedTaskIds?.includes(t.id));
       const pointsEarned = completedCatTasks.reduce((sum, t) => sum + (Number(t.points) || 0), 0);
       stats[cat.id] = {
         total: catTasks.length,
+        activeTotal: activeTasks.length,
+        inactiveTotal: inactiveTasks.length,
         completed: completedCatTasks.length,
         points: pointsEarned,
       };
     });
     return stats;
-  }, [categories, tasks, todayRecord]);
+  }, [categories, tasks, todayRecord, todayISO]);
 
   const openAddTask = (catId = '') => {
     setEditingTask(null);
@@ -115,8 +137,30 @@ export default function TaskManager() {
           </p>
         </div>
 
-        {/* Action Buttons: Add Task + Add Category */}
-        <div className="flex items-center gap-2.5">
+        {/* Action Buttons: Toggle Active/All + Add Category + Add Mission */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setShowInactiveGlobal(prev => !prev)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all shadow-sm ${
+              showInactiveGlobal
+                ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40'
+                : 'bg-slate-900/90 dark:bg-slate-900/90 light:bg-slate-100 text-slate-400 hover:text-slate-200 light:hover:text-slate-900 border-slate-800 light:border-slate-300'
+            }`}
+            title={showInactiveGlobal ? "Hide off-day inactive missions" : "Show all missions including off-day inactive"}
+          >
+            {showInactiveGlobal ? (
+              <>
+                <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                <span>All Missions Shown</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+                <span>Active Today Only {totalInactiveCount > 0 && `(${totalInactiveCount} Hidden)`}</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={() => {
               setEditingCategory(null);
@@ -157,7 +201,7 @@ export default function TaskManager() {
 
         {categories.map(cat => {
           const IconC = ICON_MAP[cat.icon] || ICON_MAP.default;
-          const stats = categoryStats[cat.id] || { total: 0, completed: 0, points: 0 };
+          const stats = categoryStats[cat.id] || { total: 0, activeTotal: 0, inactiveTotal: 0, completed: 0, points: 0 };
           const isActive = activeTab === cat.id;
 
           return (
@@ -173,7 +217,7 @@ export default function TaskManager() {
               <IconC className="w-3.5 h-3.5 text-indigo-400" />
               <span>{cat.name}</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/30 font-mono">
-                {stats.completed}/{stats.total}
+                {stats.completed}/{stats.activeTotal}
               </span>
             </button>
           );
@@ -185,7 +229,10 @@ export default function TaskManager() {
         {displayedCategories.map(category => {
           const IconComponent = ICON_MAP[category.icon] || ICON_MAP.default;
           const catTasks = tasks.filter(t => t.categoryId === category.id);
-          const stats = categoryStats[category.id] || { total: 0, completed: 0, points: 0 };
+          const activeTasks = catTasks.filter(t => isTaskScheduledForDay(t, todayISO));
+          const inactiveTasks = catTasks.filter(t => !isTaskScheduledForDay(t, todayISO));
+          const isCategoryExpanded = showInactiveGlobal || !!expandedCategoryInactive[category.id];
+          const stats = categoryStats[category.id] || { total: 0, activeTotal: 0, inactiveTotal: 0, completed: 0, points: 0 };
 
           return (
             <div
@@ -230,10 +277,13 @@ export default function TaskManager() {
                   {/* Category Progress Stats */}
                   <div className="text-right hidden xs:block">
                     <div className="text-xs font-mono font-bold text-slate-200 light:text-slate-800">
-                      {stats.completed} / {stats.total} Completed
+                      {stats.completed} / {stats.activeTotal} Active Today
                     </div>
-                    <div className="text-[11px] font-mono text-indigo-400 font-semibold">
-                      +{stats.points} Points Today
+                    <div className="flex items-center justify-end gap-1.5 text-[11px] font-mono">
+                      <span className="text-indigo-400 font-semibold">+{stats.points} Pts</span>
+                      {stats.inactiveTotal > 0 && (
+                        <span className="text-slate-500">({stats.inactiveTotal} off-day)</span>
+                      )}
                     </div>
                   </div>
 
@@ -259,11 +309,11 @@ export default function TaskManager() {
                 </div>
               </div>
 
-              {/* Task List Grid */}
+              {/* Task List: Active Tasks */}
               {catTasks.length === 0 ? (
                 <div className="py-8 text-center border-2 border-dashed border-slate-800/80 light:border-slate-200 rounded-2xl">
                   <p className="text-xs text-slate-400 mb-2">
-                    No active tasks in this category yet.
+                    No missions created in this category yet.
                   </p>
                   <button
                     onClick={() => openAddTask(category.id)}
@@ -272,9 +322,24 @@ export default function TaskManager() {
                     + Add your first task
                   </button>
                 </div>
+              ) : activeTasks.length === 0 ? (
+                <div className="py-6 px-4 text-center rounded-2xl bg-slate-950/40 dark:bg-slate-950/40 light:bg-slate-50 border border-slate-800/60 light:border-slate-200">
+                  <p className="text-xs sm:text-sm text-slate-400 light:text-slate-600 font-medium">
+                    🎉 No active missions scheduled for today in this category (Rest Day).
+                  </p>
+                  {!isCategoryExpanded && inactiveTasks.length > 0 && (
+                    <button
+                      onClick={() => toggleCategoryInactive(category.id)}
+                      className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View {inactiveTasks.length} off-day mission{inactiveTasks.length > 1 ? 's' : ''} ▾</span>
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {catTasks.map(task => (
+                  {activeTasks.map(task => (
                     <TaskCard
                       key={task.id}
                       task={task}
@@ -283,6 +348,55 @@ export default function TaskManager() {
                     />
                   ))}
                 </div>
+              )}
+
+              {/* Inactive / Off-Day Tasks Section */}
+              {inactiveTasks.length > 0 && (
+                <>
+                  {isCategoryExpanded ? (
+                    <div className="mt-5 pt-4 border-t border-slate-800/80 dark:border-slate-800/80 light:border-slate-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-slate-500" />
+                          <span className="text-xs font-semibold text-slate-400 light:text-slate-600">
+                            Off-Day Missions ({inactiveTasks.length} Inactive Today)
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                            • Not scheduled for today (view-only)
+                          </span>
+                        </div>
+                        {!showInactiveGlobal && (
+                          <button
+                            onClick={() => toggleCategoryInactive(category.id)}
+                            className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                          >
+                            Hide ▴
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        {inactiveTasks.map(task => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            onEdit={openEditTask}
+                            onDelete={promptDeleteTask}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : activeTasks.length > 0 ? (
+                    <div className="mt-3 pt-2.5 border-t border-slate-800/40 dark:border-slate-800/40 light:border-slate-200 flex justify-center">
+                      <button
+                        onClick={() => toggleCategoryInactive(category.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-indigo-400 dark:hover:text-indigo-300 bg-slate-950/40 hover:bg-slate-950/70 border border-slate-800/60 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>View {inactiveTasks.length} off-day inactive mission{inactiveTasks.length > 1 ? 's' : ''} ▾</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </>
               )}
 
             </div>

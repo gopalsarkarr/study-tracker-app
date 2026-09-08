@@ -131,7 +131,7 @@ function DashboardContent() {
         {/* 3. Categorized Task & Progress Management (with Weekly Frequency) */}
         <TaskManager />
 
-        {/* 4. 30-Day Study Progress Graph (Recharts Area Chart) */}
+        {/* 4. 100-Day Study Progress Graph (Recharts Area Chart) */}
         <ProgressGraph />
 
         {/* 5. Monthly Study Activity Calendar (Heatmap Grid + Detail Modal) */}

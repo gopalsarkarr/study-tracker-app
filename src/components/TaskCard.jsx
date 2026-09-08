@@ -10,7 +10,8 @@ import {
   Clock, 
   Sparkles,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Lock
 } from 'lucide-react';
 import { getLinkMetadata } from './BrandIcons';
 
@@ -64,17 +65,37 @@ export default function TaskCard({ task, onEdit, onDelete }) {
     >
       <div className="flex items-start gap-3.5">
         
-        {/* Animated Checkbox */}
+        {/* Animated Checkbox (disabled on inactive off-days) */}
         <button
-          onClick={() => toggleTask(task.id, todayISO)}
-          className={`relative mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            isCompleted
+          onClick={() => isScheduledToday && toggleTask(task.id, todayISO)}
+          disabled={!isScheduledToday}
+          className={`relative mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-300 focus:outline-none ${
+            !isScheduledToday
+              ? 'opacity-40 cursor-not-allowed bg-slate-800/40 border-2 border-slate-700'
+              : isCompleted
               ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-lg shadow-emerald-500/30 scale-105'
-              : 'border-2 border-slate-600 hover:border-indigo-400 bg-slate-800/60 light:bg-white hover:scale-105'
+              : 'border-2 border-slate-600 hover:border-indigo-400 bg-slate-800/60 light:bg-white hover:scale-105 focus:ring-2 focus:ring-indigo-500'
           }`}
-          aria-label={isCompleted ? `Mark ${task.name} incomplete` : `Mark ${task.name} complete`}
+          title={
+            !isScheduledToday
+              ? 'Off-day mission (Inactive today • Cannot tick)'
+              : isCompleted
+              ? `Mark ${task.name} incomplete`
+              : `Mark ${task.name} complete`
+          }
+          aria-label={
+            !isScheduledToday
+              ? `Off-day mission: ${task.name}`
+              : isCompleted
+              ? `Mark ${task.name} incomplete`
+              : `Mark ${task.name} complete`
+          }
         >
-          {isCompleted && <Check className="w-4 h-4 stroke-[3] animate-in zoom-in-50 duration-200" />}
+          {isCompleted ? (
+            <Check className="w-4 h-4 stroke-[3] animate-in zoom-in-50 duration-200" />
+          ) : !isScheduledToday ? (
+            <Lock className="w-3 h-3 text-slate-400" />
+          ) : null}
         </button>
 
         {/* Task Details */}
@@ -148,8 +169,9 @@ export default function TaskCard({ task, onEdit, onDelete }) {
 
             {/* If not scheduled today, clearly inform the user */}
             {!isScheduledToday && (
-              <span className="text-[10px] text-slate-400 font-normal px-2 py-0.5 rounded bg-slate-800/50">
-                Rest/Off day (no penalty)
+              <span className="text-[10px] font-semibold text-slate-400 light:text-slate-500 px-2 py-0.5 rounded bg-slate-800/80 light:bg-slate-200 border border-slate-700/60 light:border-slate-300 flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5 text-slate-400" />
+                <span>Inactive Today (Rest / Off-day)</span>
               </span>
             )}
 
