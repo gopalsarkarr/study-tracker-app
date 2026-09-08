@@ -242,11 +242,11 @@ export default function AuthModal() {
             </div>
           )}
 
-          {/* Actual Email for Signup */}
+          {/* Email for Signup */}
           {authModalTab === 'signup' && (
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1">
-                Actual Gmail / Email Address
+                Email
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
