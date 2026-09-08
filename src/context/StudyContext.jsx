@@ -23,6 +23,7 @@ import { scoreService } from '../services/scoreService';
 import { streakService } from '../services/streakService';
 import { achievementService } from '../services/achievementService';
 import { realtimeService } from '../services/realtimeService';
+import { visionService } from '../services/visionService';
 import confetti from 'canvas-confetti';
 
 const StudyContext = createContext(null);
@@ -92,9 +93,17 @@ export function StudyProvider({ children }) {
   const [cloudStreak, setCloudStreak] = useState(() => initialCache?.cloudStreak || { current_streak: 7, longest_streak: 14 });
   const [achievements, setAchievements] = useState(() => initialCache?.achievements || []);
 
-  // Target Vision Board & Motivation Photos state
+  // Target Vision Board & Motivation Photos state (Cache-first + Cloud-synchronized)
   const [visionPhotos, setVisionPhotos] = useState(() => {
+    if (initialCache?.visionPhotos && initialCache.visionPhotos.length > 0) {
+      return initialCache.visionPhotos;
+    }
+    if (user?.user_metadata?.vision_photos && user.user_metadata.vision_photos.length > 0) {
+      return user.user_metadata.vision_photos;
+    }
     try {
+      const userSaved = user?.id ? localStorage.getItem(`aura_vision_photos_${user.id}`) : null;
+      if (userSaved) return JSON.parse(userSaved);
       const saved = localStorage.getItem('aura_vision_photos_v1');
       return saved ? JSON.parse(saved) : DEFAULT_VISION_PHOTOS;
     } catch {
@@ -103,7 +112,15 @@ export function StudyProvider({ children }) {
   });
 
   const [activeVisionIndex, setActiveVisionIndex] = useState(() => {
+    if (typeof initialCache?.activeVisionIndex === 'number') {
+      return initialCache.activeVisionIndex;
+    }
+    if (typeof user?.user_metadata?.active_vision_idx === 'number') {
+      return user.user_metadata.active_vision_idx;
+    }
     try {
+      const userSaved = user?.id ? localStorage.getItem(`aura_active_vision_idx_${user.id}`) : null;
+      if (userSaved !== null) return JSON.parse(userSaved);
       const saved = localStorage.getItem('aura_active_vision_idx');
       return saved !== null ? JSON.parse(saved) : 0;
     } catch {
@@ -232,6 +249,34 @@ export function StudyProvider({ children }) {
           Object.assign(historyMap, history);
         }
 
+        // 4. Fetch Vision Board Photos from Supabase Cloud
+        const { photos: cloudPhotos, activeIndex: cloudIdx } = await visionService.getVisionPhotos(user.id, user.user_metadata);
+
+        let finalVisionPhotos = cloudPhotos;
+        let finalVisionIdx = typeof cloudIdx === 'number' ? cloudIdx : 0;
+
+        // Auto-migrate any local photos that were added before cloud sync
+        try {
+          const localSaved = localStorage.getItem('aura_vision_photos_v1');
+          if (localSaved) {
+            const parsedLocal = JSON.parse(localSaved);
+            const hasCustom = parsedLocal.some(p => !p.id?.startsWith('vision-1') && !p.id?.startsWith('vision-2') && !p.id?.startsWith('vision-3'));
+            const cloudHasCustom = cloudPhotos?.some(p => !p.id?.startsWith('vision-1') && !p.id?.startsWith('vision-2') && !p.id?.startsWith('vision-3'));
+
+            if (hasCustom && !cloudHasCustom) {
+              finalVisionPhotos = parsedLocal;
+              await visionService.saveVisionPhotos(user.id, parsedLocal, finalVisionIdx);
+            }
+          }
+        } catch (migErr) {}
+
+        if (isCancelled) return;
+
+        if (finalVisionPhotos && finalVisionPhotos.length > 0) {
+          setVisionPhotos(finalVisionPhotos);
+          setActiveVisionIndex(finalVisionIdx);
+        }
+
         setCategories(formattedCats);
         setTasks(formattedTasks);
         setDailyHistory(historyMap);
@@ -248,6 +293,8 @@ export function StudyProvider({ children }) {
           cloudScore: score,
           cloudStreak: streak,
           achievements: achs,
+          visionPhotos: finalVisionPhotos,
+          activeVisionIndex: finalVisionIdx,
         });
       } catch (err) {
         console.error('Failed to load user cloud data:', err);
@@ -665,19 +712,19 @@ export function StudyProvider({ children }) {
     setCelebration(null);
   }, []);
 
-  // Vision Photos Handlers
-  const addVisionPhoto = useCallback((photoData) => {
+  // Vision Photos Handlers (Cloud Synchronized with Supabase)
+  const addVisionPhoto = useCallback(async (photoData) => {
     const newPhoto = {
       id: 'vision-' + Date.now(),
       title: photoData.title?.trim() || 'My Target Goal',
       caption: photoData.caption?.trim() || 'Work hard in silence, let your results speak.',
       imageUrl: photoData.imageUrl?.trim() || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
-      tag: photoData.tag?.trim() || 'Goal 🎯',
       createdAt: new Date().toISOString(),
     };
 
+    let updated = [];
     setVisionPhotos(prev => {
-      const updated = [newPhoto, ...prev];
+      updated = [newPhoto, ...prev];
       try {
         localStorage.setItem('aura_vision_photos_v1', JSON.stringify(updated));
       } catch (e) {}
@@ -688,25 +735,40 @@ export function StudyProvider({ children }) {
     try {
       localStorage.setItem('aura_active_vision_idx', JSON.stringify(0));
     } catch (e) {}
+
+    // Synchronize to Supabase Cloud Database & User Account
+    if (user) {
+      saveLocalUserCache(user.id, { visionPhotos: updated, activeVisionIndex: 0 });
+      setSyncStatus('syncing');
+      await visionService.saveVisionPhotos(user.id, updated, 0);
+      setSyncStatus('synced');
+    }
 
     if (soundEnabled) playSound('complete', false);
     return newPhoto;
-  }, [soundEnabled]);
+  }, [user, soundEnabled]);
 
-  const updateVisionPhoto = useCallback((id, updatedData) => {
+  const updateVisionPhoto = useCallback(async (id, updatedData) => {
+    let updated = [];
     setVisionPhotos(prev => {
-      const updated = prev.map(p => (p.id === id ? { ...p, ...updatedData } : p));
+      updated = prev.map(p => (p.id === id ? { ...p, ...updatedData } : p));
       try {
         localStorage.setItem('aura_vision_photos_v1', JSON.stringify(updated));
       } catch (e) {}
       return updated;
     });
-    if (soundEnabled) playSound('click', false);
-  }, [soundEnabled]);
 
-  const deleteVisionPhoto = useCallback((id) => {
+    if (user) {
+      saveLocalUserCache(user.id, { visionPhotos: updated });
+      await visionService.saveVisionPhotos(user.id, updated, activeVisionIndex);
+    }
+    if (soundEnabled) playSound('click', false);
+  }, [user, activeVisionIndex, soundEnabled]);
+
+  const deleteVisionPhoto = useCallback(async (id) => {
+    let updated = [];
     setVisionPhotos(prev => {
-      const updated = prev.filter(p => p.id !== id);
+      updated = prev.filter(p => p.id !== id);
       try {
         localStorage.setItem('aura_vision_photos_v1', JSON.stringify(updated));
       } catch (e) {}
@@ -716,15 +778,27 @@ export function StudyProvider({ children }) {
     try {
       localStorage.setItem('aura_active_vision_idx', JSON.stringify(0));
     } catch (e) {}
-    if (soundEnabled) playSound('click', false);
-  }, [soundEnabled]);
 
-  const handleSetActiveVisionIndex = useCallback((idx) => {
+    if (user) {
+      saveLocalUserCache(user.id, { visionPhotos: updated, activeVisionIndex: 0 });
+      setSyncStatus('syncing');
+      await visionService.saveVisionPhotos(user.id, updated, 0);
+      setSyncStatus('synced');
+    }
+    if (soundEnabled) playSound('click', false);
+  }, [user, soundEnabled]);
+
+  const handleSetActiveVisionIndex = useCallback(async (idx) => {
     setActiveVisionIndex(idx);
     try {
       localStorage.setItem('aura_active_vision_idx', JSON.stringify(idx));
     } catch (e) {}
-  }, []);
+
+    if (user) {
+      saveLocalUserCache(user.id, { activeVisionIndex: idx });
+      await visionService.saveVisionPhotos(user.id, visionPhotos, idx);
+    }
+  }, [user, visionPhotos]);
 
   const value = {
     // Theme & Audio
