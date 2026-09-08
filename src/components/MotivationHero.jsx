@@ -203,7 +203,7 @@ export default function MotivationHero() {
         </div>
 
         {/* Center: Powerful Motivational Headlines + Target Vision Photo Card (Placed ABOVE the separator line) */}
-        <div className="my-6 sm:my-8 flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6">
+        <div className="my-4 sm:my-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="max-w-2xl">
             <p className="text-sm sm:text-base font-semibold text-indigo-400 tracking-wide uppercase mb-2 flex items-center gap-2">
               <span>{timeContext.timeQuote}</span>
@@ -216,8 +216,8 @@ export default function MotivationHero() {
             </p>
           </div>
 
-          {/* Target Vision Photo Card: Placed ABOVE the line, to the left of where Nova floats */}
-          <div id="hero-vision-card" className="w-full sm:w-auto flex justify-center lg:justify-end self-center lg:self-end lg:mr-72 xl:mr-80 shrink-0">
+          {/* Target Vision Photo Card: Shifted higher up and more to the right */}
+          <div id="hero-vision-card" className="w-full sm:w-auto flex justify-center lg:justify-end self-center lg:self-center lg:mr-8 xl:mr-14 shrink-0 lg:-translate-y-4">
             <HeroVisionCard />
           </div>
         </div>

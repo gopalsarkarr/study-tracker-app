@@ -68,59 +68,59 @@ function DashboardContent() {
           </div>
 
           {/* Core Philosophy & Quick Growth Insights Card (5 cols) */}
-          <div className="lg:col-span-5 bg-slate-900/90 dark:bg-slate-900/90 light:bg-white rounded-3xl p-6 sm:p-8 border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl backdrop-blur-xl flex flex-col justify-between">
+          <div className="lg:col-span-5 bg-slate-900/90 dark:bg-slate-900/90 light:bg-white rounded-3xl p-4 sm:p-5 border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl backdrop-blur-xl flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
-                  <Cpu className="w-5 h-5" />
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="p-1.5 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
+                  <Cpu className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white light:text-slate-900">
+                  <h3 className="text-sm sm:text-base font-bold text-white light:text-slate-900">
                     The Cognitive Credit Engine
                   </h3>
-                  <span className="text-xs text-indigo-400 font-mono">
+                  <span className="text-[10px] text-indigo-400 font-mono">
                     Multi-Device Cloud Architecture
                   </span>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-300 light:text-slate-600 leading-relaxed mb-4">
+              <p className="text-[11px] sm:text-xs text-slate-300 light:text-slate-600 leading-relaxed mb-3">
                 Just like financial credit reflects compounding trustworthiness, your <strong>Study Credit Score</strong> measures intellectual discipline and consistency. High-leverage skills compound at 2.2x value.
               </p>
 
               {/* Multiplier Tiers summary */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-50 border border-slate-800/80 light:border-slate-200 text-xs">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-50 border border-slate-800/80 light:border-slate-200 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-indigo-400" />
                     <span className="font-semibold text-slate-200 light:text-slate-800">Skills & Study</span>
                   </div>
-                  <span className="font-mono font-bold text-indigo-400">+20 to +50 Pts (2.2x Weight)</span>
+                  <span className="font-mono font-bold text-indigo-400 text-[11px]">+20 to +50 Pts (2.2x)</span>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-50 border border-slate-800/80 light:border-slate-200 text-xs">
+                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-50 border border-slate-800/80 light:border-slate-200 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
                     <span className="font-semibold text-slate-200 light:text-slate-800">Fitness & Reading</span>
                   </div>
-                  <span className="font-mono font-bold text-emerald-400">+10 to +20 Pts (1.2x Weight)</span>
+                  <span className="font-mono font-bold text-emerald-400 text-[11px]">+10 to +20 Pts (1.2x)</span>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-50 border border-slate-800/80 light:border-slate-200 text-xs">
+                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-50 border border-slate-800/80 light:border-slate-200 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
                     <span className="font-semibold text-slate-200 light:text-slate-800">Daily Routines</span>
                   </div>
-                  <span className="font-mono font-bold text-amber-400">+2 to +10 Pts (0.3x Weight)</span>
+                  <span className="font-mono font-bold text-amber-400 text-[11px]">+2 to +10 Pts (0.3x)</span>
                 </div>
               </div>
             </div>
 
             {/* Bottom Motivation Anchor */}
-            <div className="mt-6 pt-4 border-t border-slate-800 dark:border-slate-800 light:border-slate-200">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                <Compass className="w-4 h-4 text-indigo-400" />
-                <span className="italic">"We are what we repeatedly do. Excellence, then, is not an act, but a habit."</span>
+            <div className="mt-3 pt-3 border-t border-slate-800 dark:border-slate-800 light:border-slate-200">
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-400">
+                <Compass className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span className="italic line-clamp-1">"We are what we repeatedly do. Excellence, then, is not an act, but a habit."</span>
               </div>
             </div>
 

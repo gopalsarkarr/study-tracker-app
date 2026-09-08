@@ -75,23 +75,23 @@ export default function Speedometer() {
   }, []);
 
   return (
-    <div className="bg-slate-900/90 dark:bg-slate-900/90 light:bg-white rounded-3xl p-6 sm:p-8 border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl backdrop-blur-xl flex flex-col items-center justify-between transition-all">
+    <div className="bg-slate-900/90 dark:bg-slate-900/90 light:bg-white rounded-3xl p-4 sm:p-5 border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl backdrop-blur-xl flex flex-col items-center justify-between transition-all">
       
       {/* Header title */}
-      <div className="w-full flex items-center justify-between mb-4">
+      <div className="w-full flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
-          <h2 className="text-sm sm:text-base font-bold uppercase tracking-wider text-slate-300 light:text-slate-700 font-mono">
+          <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300 light:text-slate-700 font-mono">
             Study Credit Score Meter
           </h2>
         </div>
-        <span className="text-xs font-mono font-medium px-2.5 py-1 rounded-full bg-slate-800/80 light:bg-slate-100 text-slate-400 light:text-slate-600 border border-slate-700/60 light:border-slate-200">
+        <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-800/80 light:bg-slate-100 text-slate-400 light:text-slate-600 border border-slate-700/60 light:border-slate-200">
           Scale: 0 — 1000
         </span>
       </div>
 
       {/* Speedometer Instrument Cluster (Analog Motorcycle / Bullet Style) */}
-      <div className="relative w-full max-w-[360px] sm:max-w-[400px] aspect-square flex items-center justify-center my-2">
+      <div className="relative w-full max-w-[240px] sm:max-w-[260px] aspect-square flex items-center justify-center my-1">
         
         {/* Outer Heavy Metallic Bezel with Brushed Chrome Rim */}
         <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-slate-700 via-slate-400 to-slate-800 p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
@@ -202,34 +202,34 @@ export default function Speedometer() {
                 }}
               >
                 {/* Needle blade pointing upwards from center */}
-                <div className="relative w-2.5 h-[115px] -top-[57px] flex flex-col items-center">
+                <div className="relative w-2 h-[76px] -top-[38px] flex flex-col items-center">
                   {/* Needle tip */}
-                  <div className="w-0.5 h-6 bg-rose-400 rounded-t-full shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+                  <div className="w-0.5 h-4 bg-rose-400 rounded-t-full shadow-[0_0_6px_rgba(244,63,94,0.8)]" />
                   {/* Needle tapering stem */}
-                  <div className="w-2 h-20 bg-gradient-to-t from-rose-600 via-rose-500 to-rose-400 rounded-sm shadow-md" />
+                  <div className="w-1.5 h-13 bg-gradient-to-t from-rose-600 via-rose-500 to-rose-400 rounded-sm shadow-sm" />
                   {/* Needle base counter-weight */}
-                  <div className="w-3 h-5 bg-slate-800 rounded-b-md -mt-1" />
+                  <div className="w-2.5 h-3 bg-slate-800 rounded-b-md -mt-0.5" />
                 </div>
               </div>
 
               {/* Center Metal Hub / Boss Cap with Odometer Reading */}
-              <div className="absolute w-40 h-40 rounded-full bg-gradient-to-b from-slate-800 via-slate-900 to-black border-4 border-slate-700 shadow-2xl flex flex-col items-center justify-center text-center p-2 z-20">
+              <div className="absolute w-28 h-28 sm:w-30 sm:h-30 rounded-full bg-gradient-to-b from-slate-800 via-slate-900 to-black border-2 sm:border-3 border-slate-700 shadow-xl flex flex-col items-center justify-center text-center p-1.5 z-20">
                 
                 {/* Metallic Hub Ring detail */}
-                <div className="absolute inset-1 rounded-full border border-slate-600/50 pointer-events-none" />
+                <div className="absolute inset-1 rounded-full border border-slate-600/40 pointer-events-none" />
 
                 {/* Subtitle */}
-                <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-400">
+                <span className="text-[9px] uppercase font-mono font-bold tracking-widest text-slate-400">
                   STUDY SCORE
                 </span>
 
                 {/* Animated Score Number */}
-                <div className="text-3xl sm:text-4xl font-black tracking-tight font-mono text-white drop-shadow-lg my-0.5">
+                <div className="text-2xl sm:text-3xl font-black tracking-tight font-mono text-white drop-shadow my-0.5">
                   {displayScore}
                 </div>
 
                 {/* Score Tier Badge */}
-                <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${tier.badgeClass} shadow-sm max-w-[130px] truncate`}>
+                <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${tier.badgeClass} shadow-sm max-w-[110px] truncate`}>
                   {tier.label}
                 </div>
               </div>
@@ -241,47 +241,47 @@ export default function Speedometer() {
       </div>
 
       {/* Daily Credit Feedback Row */}
-      <div className="w-full mt-4 pt-4 border-t border-slate-800 dark:border-slate-800 light:border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+      <div className="w-full mt-3 pt-3 border-t border-slate-800 dark:border-slate-800 light:border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
         
         {/* Today's Progress */}
-        <div className="bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 p-2.5 rounded-xl border border-slate-800/80 light:border-slate-200">
-          <div className="text-[11px] text-slate-400 light:text-slate-500 font-medium">Today's Progress</div>
-          <div className="text-base font-bold font-mono text-emerald-400 light:text-emerald-600">
+        <div className="bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 p-2 rounded-xl border border-slate-800/80 light:border-slate-200">
+          <div className="text-[10px] text-slate-400 light:text-slate-500 font-medium">Today's Progress</div>
+          <div className="text-sm sm:text-base font-bold font-mono text-emerald-400 light:text-emerald-600">
             {todayCompletionPct}%
           </div>
         </div>
 
         {/* Current Study Streak */}
-        <div className="bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 p-2.5 rounded-xl border border-slate-800/80 light:border-slate-200">
-          <div className="text-[11px] text-slate-400 light:text-slate-500 font-medium">Study Streak</div>
-          <div className="text-base font-bold font-mono text-amber-400 flex items-center justify-center gap-1">
-            <Flame className="w-4 h-4 fill-amber-400/20" />
+        <div className="bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 p-2 rounded-xl border border-slate-800/80 light:border-slate-200">
+          <div className="text-[10px] text-slate-400 light:text-slate-500 font-medium">Study Streak</div>
+          <div className="text-sm sm:text-base font-bold font-mono text-amber-400 flex items-center justify-center gap-1">
+            <Flame className="w-3.5 h-3.5 fill-amber-400/20" />
             <span>{currentStreak} Days</span>
           </div>
         </div>
 
         {/* Tasks Completed */}
-        <div className="bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 p-2.5 rounded-xl border border-slate-800/80 light:border-slate-200">
-          <div className="text-[11px] text-slate-400 light:text-slate-500 font-medium">Tasks Completed</div>
-          <div className="text-base font-bold font-mono text-slate-200 light:text-slate-800">
+        <div className="bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 p-2 rounded-xl border border-slate-800/80 light:border-slate-200">
+          <div className="text-[10px] text-slate-400 light:text-slate-500 font-medium">Tasks Completed</div>
+          <div className="text-sm sm:text-base font-bold font-mono text-slate-200 light:text-slate-800">
             {todayCompletedCount} / {todayTotalCount}
           </div>
         </div>
 
         {/* Score Change Today */}
-        <div className="bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 p-2.5 rounded-xl border border-slate-800/80 light:border-slate-200">
-          <div className="text-[11px] text-slate-400 light:text-slate-500 font-medium">Score Delta Today</div>
-          <div className={`text-base font-bold font-mono flex items-center justify-center gap-1 ${
+        <div className="bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-50 p-2 rounded-xl border border-slate-800/80 light:border-slate-200">
+          <div className="text-[10px] text-slate-400 light:text-slate-500 font-medium">Score Delta Today</div>
+          <div className={`text-sm sm:text-base font-bold font-mono flex items-center justify-center gap-1 ${
             scoreDeltaToday >= 0 ? 'text-emerald-400' : 'text-rose-400'
           }`}>
             {scoreDeltaToday >= 0 ? (
               <>
-                <TrendingUp className="w-4 h-4" />
+                <TrendingUp className="w-3.5 h-3.5" />
                 <span>+{scoreDeltaToday}</span>
               </>
             ) : (
               <>
-                <TrendingDown className="w-4 h-4" />
+                <TrendingDown className="w-3.5 h-3.5" />
                 <span>{scoreDeltaToday}</span>
               </>
             )}
