@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStudy } from '../context/StudyContext';
 import { X, Sparkles, Check, AlertCircle, Link2, ExternalLink, Globe } from 'lucide-react';
 
@@ -14,6 +14,10 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
   const [linkUrl, setLinkUrl] = useState('');
   const [error, setError] = useState('');
 
+  // Refs to track modal open state and avoid wiping user input on re-renders
+  const prevOpenRef = useRef(false);
+  const prevTaskIdRef = useRef(null);
+
   // Helper to safely resolve a valid category ID from available categories
   const resolveCategoryId = (requestedId) => {
     if (requestedId && categories.some(c => c.id === requestedId)) {
@@ -24,29 +28,42 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
   };
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    if (initialTask) {
-      setName(initialTask.name || '');
-      setCategoryId(resolveCategoryId(initialTask.categoryId));
-      setPoints(initialTask.points || 30);
-      setPriority(initialTask.priority || 'Medium');
-      setWeeklyFrequency(initialTask.weeklyFrequency || 5);
-      setSpecificDays(initialTask.specificDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
-      setLinkUrl(initialTask.linkUrl || '');
-    } else {
-      const targetCatId = resolveCategoryId(defaultCategoryId);
-      const matchedCat = categories.find(c => c.id === targetCatId);
-      setName('');
-      setCategoryId(targetCatId);
-      setPoints(matchedCat?.isSkillCategory ? 35 : 15);
-      setPriority('Medium');
-      setWeeklyFrequency(5);
-      setSpecificDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
-      setLinkUrl('');
+    if (!isOpen) {
+      prevOpenRef.current = false;
+      return;
     }
-    setError('');
-  }, [initialTask, defaultCategoryId, isOpen, categories]);
+
+    const isJustOpened = !prevOpenRef.current && isOpen;
+    const isTaskChanged = initialTask?.id !== prevTaskIdRef.current;
+
+    // ONLY initialize/reset fields when the modal first opens or task ID changes
+    // This prevents background updates from wiping typed text while the user is typing!
+    if (isJustOpened || isTaskChanged) {
+      prevOpenRef.current = true;
+      prevTaskIdRef.current = initialTask?.id || null;
+
+      if (initialTask) {
+        setName(initialTask.name || '');
+        setCategoryId(resolveCategoryId(initialTask.categoryId));
+        setPoints(initialTask.points || 30);
+        setPriority(initialTask.priority || 'Medium');
+        setWeeklyFrequency(initialTask.weeklyFrequency || 5);
+        setSpecificDays(initialTask.specificDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+        setLinkUrl(initialTask.linkUrl || '');
+      } else {
+        const targetCatId = resolveCategoryId(defaultCategoryId);
+        const matchedCat = categories.find(c => c.id === targetCatId);
+        setName('');
+        setCategoryId(targetCatId);
+        setPoints(matchedCat?.isSkillCategory ? 35 : 15);
+        setPriority('Medium');
+        setWeeklyFrequency(5);
+        setSpecificDays(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+        setLinkUrl('');
+      }
+      setError('');
+    }
+  }, [isOpen, initialTask?.id, defaultCategoryId]);
 
   if (!isOpen) return null;
 
@@ -99,16 +116,16 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 dark:bg-slate-900 light:bg-white w-full max-w-lg rounded-3xl border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl overflow-hidden transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-slate-900 dark:bg-slate-900 light:bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl overflow-hidden transition-all my-auto flex flex-col max-h-[92vh]">
         
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center justify-between">
+        <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center justify-between shrink-0 bg-slate-900/90 dark:bg-slate-900/90 light:bg-white/90 backdrop-blur-md">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               <Sparkles className="w-4 h-4" />
             </div>
-            <h2 className="text-lg font-bold text-white light:text-slate-900">
+            <h2 className="text-base sm:text-lg font-bold text-white light:text-slate-900">
               {initialTask ? 'Edit Mission / Task' : 'Add New Mission / Task'}
             </h2>
           </div>
@@ -120,211 +137,215 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {error && (
-            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+        {/* Form Body with Scrollable Area and Sticky Footer for Mobile */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1 scrollbar-thin">
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          {/* Task Name */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1.5">
-              Task / Skill Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g. Dynamic Programming Practice or 20 Pages Reading"
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
-              autoFocus
-            />
-          </div>
-
-          {/* Resource / Problem Link URL */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 flex items-center gap-1.5">
-                <Link2 className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Resource / Mission Link (URL)</span>
+            {/* Task Name */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1.5">
+                Task / Skill Name
               </label>
-              <span className="text-[11px] text-slate-500">Optional</span>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Dynamic Programming Practice or 20 Pages Reading"
+                className="w-full px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
+                autoFocus
+              />
             </div>
-            <input
-              type="url"
-              value={linkUrl}
-              onChange={e => setLinkUrl(e.target.value)}
-              placeholder="e.g. https://leetcode.com/problems/... or https://youtube.com/watch?v=..."
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs font-mono"
-            />
-            {/* Quick helper shortcuts */}
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              <span className="text-[10px] text-slate-500 font-medium">Quick link:</span>
-              <button
-                type="button"
-                onClick={() => setLinkUrl('https://leetcode.com/u/gopalsarkar/')}
-                className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20"
-              >
-                + My LeetCode
-              </button>
-              <button
-                type="button"
-                onClick={() => setLinkUrl('https://classroom.sheryians.com/')}
-                className="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20"
-              >
-                + Sheryians Class
-              </button>
-              <button
-                type="button"
-                onClick={() => setLinkUrl('https://www.youtube.com')}
-                className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
-              >
-                + YouTube
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-400 light:text-slate-500 mt-1">
-              You can click this link to solve the problem or watch the video before checking the task complete!
-            </p>
-          </div>
 
-          {/* Category Select */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1.5">
-              Category
-            </label>
-            <select
-              value={categoryId}
-              onChange={e => {
-                const newCatId = e.target.value;
-                setCategoryId(newCatId);
-                const selectedCat = categories.find(c => c.id === newCatId);
-                if (selectedCat?.isSkillCategory && points < 20) setPoints(35);
-                if (selectedCat?.name?.includes('Routine') && points > 10) setPoints(5);
-              }}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 focus:outline-none focus:border-indigo-500 text-sm"
-            >
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.importance})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Points & Priority Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            
-            {/* Points Value */}
+            {/* Resource / Problem Link URL */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600">
-                  Point Value
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Resource / Mission Link (URL)</span>
                 </label>
-                <span className="text-xs text-indigo-400 font-mono font-bold">
-                  +{points} pts
-                </span>
+                <span className="text-[10px] sm:text-[11px] text-slate-500">Optional</span>
               </div>
               <input
-                type="number"
-                min="1"
-                max="100"
-                value={points}
-                onChange={e => setPoints(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 font-mono text-sm focus:outline-none focus:border-indigo-500"
+                type="url"
+                value={linkUrl}
+                onChange={e => setLinkUrl(e.target.value)}
+                placeholder="e.g. https://leetcode.com/... or https://youtube.com/watch?v=..."
+                className="w-full px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs sm:text-sm font-mono"
               />
-              <p className="text-[11px] text-slate-500 mt-1">
-                Recommended: 20-50 for Skills, 2-10 for Routine
+              {/* Quick helper shortcuts */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Quick link:</span>
+                <button
+                  type="button"
+                  onClick={() => setLinkUrl('https://leetcode.com/u/gopalsarkar/')}
+                  className="text-[10px] sm:text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 active:scale-95 transition-all"
+                >
+                  + My LeetCode
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLinkUrl('https://classroom.sheryians.com/')}
+                  className="text-[10px] sm:text-xs px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all"
+                >
+                  + Sheryians Class
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLinkUrl('https://www.youtube.com')}
+                  className="text-[10px] sm:text-xs px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 active:scale-95 transition-all"
+                >
+                  + YouTube
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400 light:text-slate-500 mt-1.5">
+                You can click this link to solve the problem or watch the video before checking the task complete!
               </p>
             </div>
 
-            {/* Priority */}
+            {/* Category Select */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1.5">
-                Priority Level
+                Category
               </label>
               <select
-                value={priority}
-                onChange={e => setPriority(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 focus:outline-none focus:border-indigo-500 text-sm"
+                value={categoryId}
+                onChange={e => {
+                  const newCatId = e.target.value;
+                  setCategoryId(newCatId);
+                  const selectedCat = categories.find(c => c.id === newCatId);
+                  if (selectedCat?.isSkillCategory && points < 20) setPoints(35);
+                  if (selectedCat?.name?.includes('Routine') && points > 10) setPoints(5);
+                }}
+                className="w-full px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 focus:outline-none focus:border-indigo-500 text-sm"
               >
-                <option value="High">High Priority</option>
-                <option value="Medium">Medium Priority</option>
-                <option value="Low">Low Priority</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.importance})
+                  </option>
+                ))}
               </select>
             </div>
 
-          </div>
+            {/* Points & Priority Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+              
+              {/* Points Value */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600">
+                    Point Value
+                  </label>
+                  <span className="text-xs text-indigo-400 font-mono font-bold">
+                    +{points} pts
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={points}
+                  onChange={e => setPoints(e.target.value)}
+                  className="w-full px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 font-mono text-sm focus:outline-none focus:border-indigo-500"
+                />
+                <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1">
+                  Recommended: 20-50 for Skills, 2-10 for Routine
+                </p>
+              </div>
 
-          {/* Weekly Target Frequency */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600">
-                Weekly Target: <span className="text-indigo-400 font-mono font-bold">{weeklyFrequency} Days/Week</span>
-              </label>
-            </div>
-            
-            {/* Quick frequency buttons (1 - 7) */}
-            <div className="flex items-center gap-1.5 mb-3">
-              {[1, 2, 3, 4, 5, 6, 7].map(num => (
-                <button
-                  type="button"
-                  key={num}
-                  onClick={() => handleFrequencyChange(num)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
-                    weeklyFrequency === num
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'bg-slate-800/80 light:bg-slate-100 text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900'
-                  }`}
+              {/* Priority */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1.5">
+                  Priority Level
+                </label>
+                <select
+                  value={priority}
+                  onChange={e => setPriority(e.target.value)}
+                  className="w-full px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 focus:outline-none focus:border-indigo-500 text-sm"
                 >
-                  {num}d
-                </button>
-              ))}
+                  <option value="High">High Priority</option>
+                  <option value="Medium">Medium Priority</option>
+                  <option value="Low">Low Priority</option>
+                </select>
+              </div>
+
             </div>
 
-            {/* Specific Weekdays Toggles */}
-            <label className="block text-[11px] text-slate-400 light:text-slate-600 mb-1.5">
-              Specific Weekdays (scheduled vs non-scheduled rest days):
-            </label>
-            <div className="grid grid-cols-7 gap-1">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
-                const isSelected = specificDays.includes(day);
-                return (
+            {/* Weekly Target Frequency */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600">
+                  Weekly Target: <span className="text-indigo-400 font-mono font-bold">{weeklyFrequency} Days/Week</span>
+                </label>
+              </div>
+              
+              {/* Quick frequency buttons (1 - 7) */}
+              <div className="flex items-center gap-1 sm:gap-1.5 mb-3">
+                {[1, 2, 3, 4, 5, 6, 7].map(num => (
                   <button
                     type="button"
-                    key={day}
-                    onClick={() => toggleDay(day)}
-                    className={`py-2 rounded-xl text-xs font-medium flex flex-col items-center justify-center transition-all ${
-                      isSelected
-                        ? 'bg-gradient-to-b from-indigo-600 to-indigo-700 text-white font-bold shadow-md shadow-indigo-500/20 ring-1 ring-indigo-400'
-                        : 'bg-slate-950 dark:bg-slate-950 light:bg-slate-100 text-slate-500 border border-slate-800 dark:border-slate-800 light:border-slate-200'
+                    key={num}
+                    onClick={() => handleFrequencyChange(num)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                      weeklyFrequency === num
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'bg-slate-800/80 light:bg-slate-100 text-slate-400 light:text-slate-600 hover:text-white light:hover:text-slate-900'
                     }`}
                   >
-                    <span>{day}</span>
-                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1" />}
+                    {num}d
                   </button>
-                );
-              })}
+                ))}
+              </div>
+
+              {/* Specific Weekdays Toggles */}
+              <label className="block text-[11px] text-slate-400 light:text-slate-600 mb-1.5">
+                Specific Weekdays (scheduled vs rest days):
+              </label>
+              <div className="grid grid-cols-7 gap-1">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                  const isSelected = specificDays.includes(day);
+                  return (
+                    <button
+                      type="button"
+                      key={day}
+                      onClick={() => toggleDay(day)}
+                      className={`py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-medium flex flex-col items-center justify-center transition-all ${
+                        isSelected
+                          ? 'bg-gradient-to-b from-indigo-600 to-indigo-700 text-white font-bold shadow-md shadow-indigo-500/20 ring-1 ring-indigo-400'
+                          : 'bg-slate-950 dark:bg-slate-950 light:bg-slate-100 text-slate-500 border border-slate-800 dark:border-slate-800 light:border-slate-200'
+                      }`}
+                    >
+                      <span>{day}</span>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-0.5 sm:mt-1" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 mt-2 italic">
+                Non-scheduled days do not count as missed days and will not damage your score or streak.
+              </p>
             </div>
-            <p className="text-[11px] text-slate-500 mt-2 italic">
-              Non-scheduled days do not count as missed days and will not damage your score or streak.
-            </p>
+
           </div>
 
-          {/* Modal Footer Actions */}
-          <div className="pt-4 border-t border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center justify-end gap-3">
+          {/* Sticky Modal Footer Actions */}
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center justify-end gap-2.5 sm:gap-3 shrink-0 bg-slate-950/80 dark:bg-slate-950/80 light:bg-slate-50/80 backdrop-blur-sm">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white light:hover:text-slate-900 hover:bg-slate-800 light:hover:bg-slate-100 transition-colors"
+              className="px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-400 hover:text-white light:hover:text-slate-900 hover:bg-slate-800 light:hover:bg-slate-100 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all transform active:scale-95"
+              className="px-5 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all transform active:scale-95"
             >
               {initialTask ? 'Save Changes' : 'Create Task'}
             </button>
