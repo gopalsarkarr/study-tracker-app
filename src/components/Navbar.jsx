@@ -18,8 +18,7 @@ import {
   LogOut, 
   Cloud, 
   ChevronDown, 
-  LogIn,
-  Key 
+  LogIn
 } from 'lucide-react';
 import { LeetCodeIcon, SheryiansIcon, GitHubIcon, YouTubeIcon } from './BrandIcons';
 
@@ -29,7 +28,6 @@ export default function Navbar() {
     profile,
     logout,
     openAuthModal,
-    openSetupCredentialsModal,
     isConfigured,
   } = useAuth();
 
@@ -245,21 +243,6 @@ export default function Navbar() {
                   >
                     <Settings className="w-3.5 h-3.5 text-purple-400" />
                     <span>Cloud & Settings</span>
-                  </button>
-
-                  <button
-                    onClick={() => openSetupCredentialsModal()}
-                    className="w-full px-3 py-2 rounded-xl text-xs font-medium text-slate-300 light:text-slate-700 hover:text-white light:hover:text-slate-900 hover:bg-slate-800 light:hover:bg-slate-100 flex items-center justify-between transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Key className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Login ID & Password</span>
-                    </div>
-                    {!user?.user_metadata?.credentials_configured && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">
-                        Set
-                      </span>
-                    )}
                   </button>
 
                   <div className="my-1 border-t border-slate-800 light:border-slate-200" />
