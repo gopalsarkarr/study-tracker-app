@@ -239,7 +239,7 @@ export default function AuthScreen({ onGuestDemo }) {
 
               {tab === 'signup' && (
                 <p className="text-[11px] text-center text-slate-400">
-                  ⚡ এক ক্লিকে অথেনটিক অ্যাকাউন্ট তৈরি করুন ও পরে ইউজারনেম-পাসওয়ার্ড সেট করুন।
+                  ⚡ Sign up instantly with Google, then customize your Username & Password.
                 </p>
               )}
 

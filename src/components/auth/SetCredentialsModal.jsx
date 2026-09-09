@@ -61,25 +61,25 @@ export default function SetCredentialsModal() {
 
     const cleanUname = username.trim().toLowerCase().replace(/[^a-z0-9_.]/g, '');
     if (!cleanUname) {
-      setErrorMsg('অনুগ্রহ করে একটি ইউজারনেম লিখুন (Please enter a username).');
+      setErrorMsg('Please enter a username.');
       return;
     }
     if (cleanUname.length < 3) {
-      setErrorMsg('ইউজারনেম কমপক্ষে ৩ অক্ষরের হতে হবে (Username must be at least 3 characters).');
+      setErrorMsg('Username must be at least 3 characters long.');
       return;
     }
 
     if (!password) {
-      setErrorMsg('অনুগ্রহ করে একটি পাসওয়ার্ড দিন (Please enter a password).');
+      setErrorMsg('Please enter a password.');
       return;
     }
     if (password.length < 6) {
-      setErrorMsg('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে (Password must be at least 6 characters).');
+      setErrorMsg('Password must be at least 6 characters long.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMsg('পাসওয়ার্ড দুটো মেলেনি, আবার চেক করুন (Passwords do not match).');
+      setErrorMsg('Passwords do not match. Please verify.');
       return;
     }
 
@@ -88,9 +88,9 @@ export default function SetCredentialsModal() {
     setIsSubmitting(false);
 
     if (!res.success) {
-      setErrorMsg(res.error || 'ইউজারনেম ও পাসওয়ার্ড সেট করতে ব্যর্থ হয়েছে।');
+      setErrorMsg(res.error || 'Failed to setup username and password.');
     } else {
-      setSuccessMsg('অভিনন্দন! আপনার ইউজারনেম ও পাসওয়ার্ড সফলভাবে সেট হয়েছে!');
+      setSuccessMsg('Success! Your username and password have been configured.');
       setTimeout(() => {
         closeSetupCredentialsModal(false);
       }, 1200);
@@ -158,7 +158,7 @@ export default function SetCredentialsModal() {
         <div className="px-6 py-3 bg-indigo-950/40 border-b border-indigo-500/20 text-xs text-indigo-200 flex items-start gap-2.5">
           <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            আপনার Google অ্যাকাউন্ট সফলভাবে সংযুক্ত হয়েছে! এবার একটি <strong>Username</strong> ও <strong>Password</strong> সেট করে নিন, যাতে পরবর্তীতে আপনি <strong>Continue with Google</strong> অথবা <strong>Username + Password</strong> যেকোনো পদ্ধতিতে লগইন করতে পারেন।
+            Your Google account has been verified! Set up a custom <strong>Username</strong> and <strong>Password</strong> below so you can sign in anytime using either <strong>Continue with Google</strong> or your <strong>Username + Password</strong>.
           </p>
         </div>
 
@@ -203,7 +203,7 @@ export default function SetCredentialsModal() {
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
-              যেকোনো ডিভাইসে লগইন করার জন্য এই ইউজারনেম ব্যবহার করতে পারবেন (Only letters, numbers, _, .)।
+              Use this username to sign in across any device (letters, numbers, _, .).
             </p>
           </div>
 
