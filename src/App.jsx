@@ -11,6 +11,7 @@ import VisionGalleryManager from './components/VisionGalleryManager';
 import CelebrationModal from './components/CelebrationModal';
 import AuthModal from './components/auth/AuthModal';
 import AuthScreen from './components/auth/AuthScreen';
+import SetCredentialsModal from './components/auth/SetCredentialsModal';
 import { Sparkles, Shield, Cpu, Compass } from 'lucide-react';
 
 function DashboardContent() {
@@ -145,6 +146,7 @@ function DashboardContent() {
       {/* Global Modals */}
       <CelebrationModal />
       <AuthModal />
+      <SetCredentialsModal />
 
       {/* Footer */}
       <footer className="w-full border-t border-slate-800/80 dark:border-slate-800/80 light:border-slate-200 py-8 bg-slate-950 dark:bg-slate-950 light:bg-white text-center text-xs text-slate-500 transition-colors">

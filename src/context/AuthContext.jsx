@@ -13,6 +13,20 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState('login'); // 'login' | 'signup' | 'forgot'
+  const [isSetupCredentialsOpen, setIsSetupCredentialsOpen] = useState(false);
+
+  // Check if user needs to configure custom credentials (username & password)
+  const checkCredentialsPrompt = useCallback((currentUser) => {
+    if (!currentUser) return;
+    const isConfigured = currentUser.user_metadata?.credentials_configured;
+    const isSkipped = sessionStorage.getItem('credentials_setup_skipped') === 'true';
+    if (!isConfigured && !isSkipped) {
+      // Small timeout to allow UI transitions to complete smoothly
+      setTimeout(() => {
+        setIsSetupCredentialsOpen(true);
+      }, 500);
+    }
+  }, []);
 
   // Load user profile
   const fetchUserProfile = useCallback(async (userId, fallbackName, fallbackEmail) => {
@@ -47,6 +61,7 @@ export function AuthProvider({ children }) {
           initialSession.user.user_metadata?.full_name,
           initialSession.user.email
         );
+        checkCredentialsPrompt(initialSession.user);
       }
       setLoading(false);
     });
@@ -63,8 +78,10 @@ export function AuthProvider({ children }) {
           currentUser.user_metadata?.full_name,
           currentUser.email
         );
+        checkCredentialsPrompt(currentUser);
       } else {
         setProfile(null);
+        setIsSetupCredentialsOpen(false);
       }
       setLoading(false);
     });
@@ -73,7 +90,7 @@ export function AuthProvider({ children }) {
       isMounted = false;
       authListener?.subscription?.unsubscribe?.();
     };
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, checkCredentialsPrompt]);
 
   // Sign up
   const signUp = useCallback(async ({ email, password, fullName, username }) => {
@@ -157,6 +174,51 @@ export function AuthProvider({ children }) {
     return { success: true };
   }, [user]);
 
+  // Sign in with Google OAuth
+  const signInWithGoogle = useCallback(async () => {
+    setAuthError(null);
+    const { data, error } = await authService.signInWithGoogle();
+    if (error) {
+      setAuthError(error);
+      return { success: false, error };
+    }
+    return { success: true, data };
+  }, []);
+
+  // Set custom credentials (username and password)
+  const setupUserCredentials = useCallback(async ({ username, password }) => {
+    setAuthError(null);
+    const { data, error } = await authService.setupUserCredentials({ username, password });
+    if (error) {
+      setAuthError(error);
+      return { success: false, error };
+    }
+    if (data) {
+      setUser(data);
+      await fetchUserProfile(data.id, data.user_metadata?.full_name, data.email);
+      setIsSetupCredentialsOpen(false);
+      try {
+        sessionStorage.removeItem('credentials_setup_skipped');
+      } catch (e) {}
+    }
+    return { success: true, data };
+  }, [fetchUserProfile]);
+
+  const openSetupCredentialsModal = useCallback(() => {
+    setAuthError(null);
+    setIsSetupCredentialsOpen(true);
+  }, []);
+
+  const closeSetupCredentialsModal = useCallback((skipped = false) => {
+    if (skipped) {
+      try {
+        sessionStorage.setItem('credentials_setup_skipped', 'true');
+      } catch (e) {}
+    }
+    setIsSetupCredentialsOpen(false);
+    setAuthError(null);
+  }, []);
+
   const openAuthModal = useCallback((tab = 'login') => {
     setAuthModalTab(tab);
     setAuthError(null);
@@ -180,6 +242,11 @@ export function AuthProvider({ children }) {
     setAuthModalTab,
     openAuthModal,
     closeAuthModal,
+    isSetupCredentialsOpen,
+    openSetupCredentialsModal,
+    closeSetupCredentialsModal,
+    setupUserCredentials,
+    signInWithGoogle,
     signUp,
     login,
     logout,

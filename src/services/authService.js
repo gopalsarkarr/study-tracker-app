@@ -53,6 +53,111 @@ export const authService = {
   },
 
   /**
+   * Check if a username is already taken by another user
+   */
+  async checkUsernameAvailable(username, currentUserId = null) {
+    if (!username) return false;
+    const clean = username.trim().toLowerCase().replace(/[^a-z0-9_.]/g, '');
+    if (clean.length < 3) return false;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .ilike('username', clean)
+        .maybeSingle();
+
+      if (error) return true; // optimistic
+      if (!data) return true; // available
+      return data.id === currentUserId;
+    } catch (e) {
+      return true;
+    }
+  },
+
+  /**
+   * Sign in / Sign up with Google OAuth
+   */
+  async signInWithGoogle() {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
+        },
+      });
+      if (error) throw error;
+      return { data, error: null };
+    } catch (err) {
+      return { data: null, error: err.message || 'Failed to initialize Google Sign-In.' };
+    }
+  },
+
+  /**
+   * Set custom Username and Password on an authenticated user (e.g. after Google OAuth)
+   */
+  async setupUserCredentials({ username, password }) {
+    try {
+      const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.]/g, '');
+      if (cleanUsername.length < 3) {
+        throw new Error('Username must be at least 3 characters long.');
+      }
+      if (!password || password.length < 6) {
+        throw new Error('Password must be at least 6 characters long.');
+      }
+
+      // 1. Get current session/user
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) throw new Error('No authenticated user session found.');
+
+      // 2. Check if username is already taken by someone else
+      const isAvailable = await this.checkUsernameAvailable(cleanUsername, user.id);
+      if (!isAvailable) {
+        throw new Error(`Username "@${cleanUsername}" is already taken. Please choose another.`);
+      }
+
+      // 3. Update auth.users with the new password and metadata flag
+      const { data: updatedAuth, error: authUpdateErr } = await supabase.auth.updateUser({
+        password: password,
+        data: {
+          username: cleanUsername,
+          credentials_configured: true,
+        },
+      });
+      if (authUpdateErr) throw authUpdateErr;
+
+      // 4. Upsert/Update the profiles table with this username & email
+      try {
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          username: cleanUsername,
+          email: user.email?.toLowerCase(),
+          full_name: user.user_metadata?.full_name || cleanUsername,
+          avatar_url: user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUsername)}`,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (pErr) {
+        console.warn('Profile username sync warning:', pErr);
+      }
+
+      // 5. Cache locally for instant username resolution on this device
+      try {
+        if (user.email) {
+          localStorage.setItem(`aura_user_lookup_${cleanUsername}`, user.email.toLowerCase());
+        }
+        localStorage.setItem('study_tracker_username', cleanUsername);
+      } catch (e) {}
+
+      return { data: updatedAuth.user || user, error: null };
+    } catch (err) {
+      return { data: null, error: err.message || 'Failed to setup credentials.' };
+    }
+  },
+
+  /**
    * Sign up with email, password, full name, and username
    */
   async signUp({ email, password, fullName, username }) {
@@ -70,6 +175,7 @@ export const authService = {
             username: cleanUsername,
             full_name: fullName.trim(),
             avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUsername || cleanEmail)}`,
+            credentials_configured: true,
           },
         },
       });
