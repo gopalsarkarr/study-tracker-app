@@ -117,9 +117,15 @@ export default function ProgressGraph() {
       };
 
       const isToday = iso === todayISO;
-      const score = rec.creditScoreAfterCompletion || rec.cumulativeProgressScore || 500;
+      const score = isToday
+        ? (rec.creditScoreAfterCompletion || currentCreditScore || 500)
+        : (rec.creditScoreAfterCompletion || rec.cumulativeProgressScore || 500);
 
-      if (rec.completionPercentage >= 30) {
+      const completionPercentage = isToday
+        ? (typeof rec.completionPercentage === 'number' ? rec.completionPercentage : todayCompletionPct)
+        : (rec.completionPercentage || 0);
+
+      if (completionPercentage >= 30) {
         activeDaysCount++;
       }
 
@@ -153,7 +159,7 @@ export default function ProgressGraph() {
         date: iso,
         displayDate: formatShortDate(iso),
         score,
-        completionPercentage: rec.completionPercentage || 0,
+        completionPercentage,
         dailyPoints: rec.dailyPoints || 0,
         completedSkills: rec.completedSkills || [],
         isToday,

@@ -11,6 +11,212 @@ export const isSupabaseConfigured = Boolean(
   supabaseUrl.startsWith('https://')
 );
 
+class MockQueryBuilder {
+  constructor(table, storageKey) {
+    this.table = table;
+    this.storageKey = storageKey;
+    this.queryFilters = [];
+    this.orderConfig = null;
+    this.limitCount = null;
+    this.isSingle = false;
+    this.pendingOperation = null;
+  }
+
+  getStore() {
+    try {
+      const d = localStorage.getItem(this.storageKey);
+      return d ? JSON.parse(d) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  setStore(data) {
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(data));
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  select(columns = '*') {
+    return this;
+  }
+
+  eq(column, value) {
+    this.queryFilters.push({ column, op: 'eq', value });
+    return this;
+  }
+
+  neq(column, value) {
+    this.queryFilters.push({ column, op: 'neq', value });
+    return this;
+  }
+
+  gte(column, value) {
+    this.queryFilters.push({ column, op: 'gte', value });
+    return this;
+  }
+
+  lte(column, value) {
+    this.queryFilters.push({ column, op: 'lte', value });
+    return this;
+  }
+
+  order(column, options = {}) {
+    this.orderConfig = { column, ascending: options.ascending !== false };
+    return this;
+  }
+
+  limit(count) {
+    this.limitCount = count;
+    return this;
+  }
+
+  single() {
+    this.isSingle = true;
+    return this;
+  }
+
+  insert(records) {
+    this.pendingOperation = () => {
+      const list = Array.isArray(records) ? records : [records];
+      const current = this.getStore();
+      const created = list.map(item => ({
+        ...item,
+        id: item.id || 'id-' + Math.random().toString(36).substring(2, 9),
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }));
+      this.setStore([...current, ...created]);
+      return created;
+    };
+    return this;
+  }
+
+  upsert(records, options = {}) {
+    this.pendingOperation = () => {
+      const list = Array.isArray(records) ? records : [records];
+      const current = this.getStore();
+      const updated = [...current];
+      const upsertedList = [];
+
+      list.forEach(rec => {
+        const idx = updated.findIndex(u => {
+          if (rec.id && u.id === rec.id) return true;
+          if (rec.user_id && rec.date && u.user_id === rec.user_id && u.date === rec.date) return true;
+          if (rec.user_id && rec.task_id && rec.date && u.user_id === rec.user_id && u.task_id === rec.task_id && u.date === rec.date) return true;
+          if (rec.user_id && !rec.date && !rec.task_id && u.user_id === rec.user_id) return true;
+          return false;
+        });
+
+        if (idx >= 0) {
+          updated[idx] = { ...updated[idx], ...rec, updated_at: new Date().toISOString() };
+          upsertedList.push(updated[idx]);
+        } else {
+          const newRow = {
+            ...rec,
+            id: rec.id || 'id-' + Math.random().toString(36).substring(2, 9),
+            created_at: rec.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          updated.push(newRow);
+          upsertedList.push(newRow);
+        }
+      });
+
+      this.setStore(updated);
+      return upsertedList;
+    };
+    return this;
+  }
+
+  update(updates) {
+    this.pendingOperation = () => {
+      const current = this.getStore();
+      const updatedList = [];
+      const updated = current.map(row => {
+        const matches = this.queryFilters.every(f => {
+          if (f.op === 'eq') return row[f.column] === f.value;
+          if (f.op === 'neq') return row[f.column] !== f.value;
+          return true;
+        });
+        if (matches) {
+          const mod = { ...row, ...updates, updated_at: new Date().toISOString() };
+          updatedList.push(mod);
+          return mod;
+        }
+        return row;
+      });
+      this.setStore(updated);
+      return updatedList;
+    };
+    return this;
+  }
+
+  delete() {
+    this.pendingOperation = () => {
+      const current = this.getStore();
+      const deletedList = [];
+      const remaining = current.filter(row => {
+        const matches = this.queryFilters.every(f => {
+          if (f.op === 'eq') return row[f.column] === f.value;
+          if (f.op === 'neq') return row[f.column] !== f.value;
+          return true;
+        });
+        if (matches) {
+          deletedList.push(row);
+          return false;
+        }
+        return true;
+      });
+      this.setStore(remaining);
+      return deletedList;
+    };
+    return this;
+  }
+
+  async execute() {
+    let result = [];
+    if (this.pendingOperation) {
+      result = this.pendingOperation();
+    } else {
+      let rows = this.getStore();
+      result = rows.filter(r => {
+        return this.queryFilters.every(f => {
+          if (f.op === 'eq') return r[f.column] === f.value;
+          if (f.op === 'neq') return r[f.column] !== f.value;
+          if (f.op === 'gte') return r[f.column] >= f.value;
+          if (f.op === 'lte') return r[f.column] <= f.value;
+          return true;
+        });
+      });
+
+      if (this.orderConfig) {
+        const { column, ascending } = this.orderConfig;
+        result.sort((a, b) => {
+          if (a[column] < b[column]) return ascending ? -1 : 1;
+          if (a[column] > b[column]) return ascending ? 1 : -1;
+          return 0;
+        });
+      }
+
+      if (typeof this.limitCount === 'number') {
+        result = result.slice(0, this.limitCount);
+      }
+    }
+
+    if (this.isSingle) {
+      return { data: Array.isArray(result) ? (result[0] || null) : result, error: null };
+    }
+    return { data: Array.isArray(result) ? result : [result], error: null };
+  }
+
+  then(resolve, reject) {
+    return this.execute().then(resolve, reject);
+  }
+}
+
 // Fallback in-memory/localStorage mock store for demo mode if Supabase env vars are not set
 class MockSupabaseClient {
   constructor() {
@@ -191,103 +397,7 @@ class MockSupabaseClient {
 
   from(table) {
     const storageKey = `aura_cloud_table_${table}`;
-    const getStore = () => {
-      try {
-        const d = localStorage.getItem(storageKey);
-        return d ? JSON.parse(d) : [];
-      } catch {
-        return [];
-      }
-    };
-    const setStore = (data) => {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(data));
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    let queryFilters = [];
-
-    const builder = {
-      select: (columns = '*') => {
-        return builder;
-      },
-      eq: (column, value) => {
-        queryFilters.push({ column, value });
-        return builder;
-      },
-      order: () => builder,
-      limit: () => builder,
-      single: async () => {
-        const rows = getStore();
-        const filtered = rows.filter(r => queryFilters.every(f => r[f.column] === f.value));
-        return { data: filtered[0] || null, error: null };
-      },
-      then: async (resolve) => {
-        const rows = getStore();
-        const filtered = rows.filter(r => queryFilters.every(f => r[f.column] === f.value));
-        resolve({ data: filtered, error: null });
-      },
-      insert: async (records) => {
-        const list = Array.isArray(records) ? records : [records];
-        const current = getStore();
-        const created = list.map(item => ({
-          ...item,
-          id: item.id || 'id-' + Math.random().toString(36).substring(2, 9),
-          created_at: item.created_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }));
-        setStore([...current, ...created]);
-        return { data: created, error: null };
-      },
-      upsert: async (records) => {
-        const list = Array.isArray(records) ? records : [records];
-        const current = getStore();
-        const updated = [...current];
-
-        list.forEach(rec => {
-          const idx = updated.findIndex(u => {
-            if (rec.id && u.id === rec.id) return true;
-            if (rec.user_id && rec.date && u.user_id === rec.user_id && u.date === rec.date) return true;
-            if (rec.user_id && rec.task_id && rec.date && u.user_id === rec.user_id && u.task_id === rec.task_id && u.date === rec.date) return true;
-            return false;
-          });
-          if (idx >= 0) {
-            updated[idx] = { ...updated[idx], ...rec, updated_at: new Date().toISOString() };
-          } else {
-            updated.push({
-              ...rec,
-              id: rec.id || 'id-' + Math.random().toString(36).substring(2, 9),
-              created_at: rec.created_at || new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-          }
-        });
-
-        setStore(updated);
-        return { data: list, error: null };
-      },
-      update: async (updates) => {
-        const current = getStore();
-        const updated = current.map(row => {
-          if (queryFilters.every(f => row[f.column] === f.value)) {
-            return { ...row, ...updates, updated_at: new Date().toISOString() };
-          }
-          return row;
-        });
-        setStore(updated);
-        return { data: updated, error: null };
-      },
-      delete: async () => {
-        const current = getStore();
-        const remaining = current.filter(row => !queryFilters.every(f => row[f.column] === f.value));
-        setStore(remaining);
-        return { data: remaining, error: null };
-      },
-    };
-
-    return builder;
+    return new MockQueryBuilder(table, storageKey);
   }
 
   channel() {

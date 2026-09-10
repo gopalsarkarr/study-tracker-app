@@ -153,6 +153,21 @@ export function StudyProvider({ children }) {
     }
   }, [soundEnabled]);
 
+  // When authenticated user becomes available, immediately hydrate state from local user cache
+  useEffect(() => {
+    if (user?.id) {
+      const cached = getLocalUserCache(user.id);
+      if (cached) {
+        if (cached.categories?.length > 0) setCategories(cached.categories);
+        if (cached.tasks?.length > 0) setTasks(cached.tasks);
+        if (cached.dailyHistory && Object.keys(cached.dailyHistory).length > 0) setDailyHistory(cached.dailyHistory);
+        if (cached.cloudScore) setCloudScore(cached.cloudScore);
+        if (cached.cloudStreak) setCloudStreak(cached.cloudStreak);
+        if (cached.achievements) setAchievements(cached.achievements);
+      }
+    }
+  }, [user?.id]);
+
   // Load User Data from Supabase Cloud upon Login
   useEffect(() => {
     if (!user) {
@@ -224,17 +239,35 @@ export function StudyProvider({ children }) {
 
         if (isCancelled) return;
 
-        // Build unified daily history map
-        const historyMap = {};
+        // Determine user start date (account creation or fallback to 2026-09-08)
+        const userStartDate = user.created_at ? getISODate(user.created_at) : '2026-09-08';
 
-        // If user has existing daily records in database, populate them
-        records.forEach(rec => {
-          const dayCompleted = completed.filter(c => c.date === rec.date).map(c => c.task_id);
+        // Build unified daily history map
+        // Start with existing local cache history to prevent data loss across refreshes
+        const userCache = getLocalUserCache(user.id);
+        const historyMap = { ...(userCache?.dailyHistory || {}) };
+
+        // Group completed tasks by date
+        const completedByDate = {};
+        (completed || []).forEach(c => {
+          if (!c.date) return;
+          if (!completedByDate[c.date]) completedByDate[c.date] = [];
+          if (!completedByDate[c.date].includes(c.task_id)) {
+            completedByDate[c.date].push(c.task_id);
+          }
+        });
+
+        // 1. Populate/update records from daily_records table
+        (records || []).forEach(rec => {
+          const dayCompleted = completedByDate[rec.date] || [];
+          const scheduledTasks = formattedTasks.filter(t => isTaskScheduledForDay(t, rec.date));
           historyMap[rec.date] = {
             date: rec.date,
-            scheduledTaskIds: formattedTasks.filter(t => isTaskScheduledForDay(t, rec.date)).map(t => t.id),
+            scheduledTaskIds: scheduledTasks.map(t => t.id),
             completedTaskIds: dayCompleted,
-            completedSkills: formattedTasks.filter(t => dayCompleted.includes(t.id) && t.categoryId === formattedCats.find(c => c.isSkillCategory)?.id).map(t => t.name.split(' (')[0]),
+            completedSkills: formattedTasks
+              .filter(t => dayCompleted.includes(t.id) && t.categoryId === formattedCats.find(c => c.isSkillCategory)?.id)
+              .map(t => t.name.split(' (')[0]),
             dailyPoints: rec.daily_points,
             completionPercentage: rec.completion_percentage,
             scoreChange: rec.score_change,
@@ -243,11 +276,74 @@ export function StudyProvider({ children }) {
           };
         });
 
-        // If new user has no past records, generate 30-day realistic starting history
-        if (Object.keys(historyMap).length === 0) {
-          const { history } = generateRealisticHistory(todayISO, formattedTasks, formattedCats);
-          Object.assign(historyMap, history);
+        // 2. For any dates in completedByDate missing from records table, synthesize their records
+        Object.keys(completedByDate).forEach(date => {
+          const existing = historyMap[date];
+          if (!existing || (existing.completionPercentage === 0 && completedByDate[date].length > 0)) {
+            const dayCompleted = completedByDate[date];
+            const scheduledTasks = formattedTasks.filter(t => isTaskScheduledForDay(t, date));
+            const deltaStats = calculateDailyScoreDelta(
+              scheduledTasks,
+              dayCompleted,
+              categoryMap,
+              streak?.current_streak || 0,
+              0
+            );
+            historyMap[date] = {
+              date,
+              scheduledTaskIds: scheduledTasks.map(t => t.id),
+              completedTaskIds: dayCompleted,
+              completedSkills: formattedTasks
+                .filter(t => dayCompleted.includes(t.id) && t.categoryId === formattedCats.find(c => c.isSkillCategory)?.id)
+                .map(t => t.name.split(' (')[0]),
+              dailyPoints: deltaStats.earnedPoints,
+              completionPercentage: deltaStats.completionPercentage,
+              scoreChange: deltaStats.delta,
+              creditScoreAfterCompletion: score?.current_score || 500,
+              cumulativeProgressScore: score?.current_score || 500,
+            };
+            // Async backup to daily_records
+            dailyRecordService.upsertDailyRecord(user.id, date, {
+              completionPercentage: deltaStats.completionPercentage,
+              dailyPoints: deltaStats.earnedPoints,
+              scoreChange: deltaStats.delta,
+              creditScoreAfter: score?.current_score || 500,
+            }).catch(e => console.error('Auto-sync daily record error:', e));
+          }
+        });
+
+        // 3. Ensure today always exists with accurate scheduled tasks
+        if (!historyMap[todayISO]) {
+          const scheduledToday = formattedTasks.filter(t => isTaskScheduledForDay(t, todayISO));
+          historyMap[todayISO] = {
+            date: todayISO,
+            scheduledTaskIds: scheduledToday.map(t => t.id),
+            completedTaskIds: [],
+            completedSkills: [],
+            dailyPoints: 0,
+            completionPercentage: 0,
+            scoreChange: 0,
+            creditScoreAfterCompletion: score?.current_score || 500,
+            cumulativeProgressScore: score?.current_score || 500,
+          };
         }
+
+        // 4. Ensure days strictly BEFORE the user's start date are clean (0% completed)
+        Object.keys(historyMap).forEach(date => {
+          if (date < userStartDate) {
+            historyMap[date] = {
+              date,
+              scheduledTaskIds: formattedTasks.filter(t => isTaskScheduledForDay(t, date)).map(t => t.id),
+              completedTaskIds: [],
+              completedSkills: [],
+              dailyPoints: 0,
+              completionPercentage: 0,
+              scoreChange: 0,
+              creditScoreAfterCompletion: 500,
+              cumulativeProgressScore: 500,
+            };
+          }
+        });
 
         // 4. Fetch Vision Board Photos from Supabase Cloud
         const { photos: cloudPhotos, activeIndex: cloudIdx } = await visionService.getVisionPhotos(user.id, user.user_metadata);
@@ -494,11 +590,26 @@ export function StudyProvider({ children }) {
       cumulativeProgressScore: newCreditScore,
     };
 
-    // Optimistically update React State
-    setDailyHistory(prev => ({
-      ...prev,
+    // Optimistically update React State & synchronously persist to Local User Cache
+    const nextDailyHistory = {
+      ...dailyHistory,
       [targetDateISO]: updatedRecord,
-    }));
+    };
+    setDailyHistory(nextDailyHistory);
+
+    if (user?.id) {
+      saveLocalUserCache(user.id, {
+        dailyHistory: nextDailyHistory,
+        cloudScore: {
+          current_score: newCreditScore,
+          highest_score: Math.max(newCreditScore, highestScore),
+        },
+        cloudStreak: {
+          current_streak: currentStreak,
+          longest_streak: Math.max(currentStreak, cloudStreak?.longest_streak || 0),
+        },
+      });
+    }
 
     if (!isAlreadyCompleted && deltaStats.completionPercentage === 100 && scheduledForDay.length > 0) {
       setTimeout(() => {

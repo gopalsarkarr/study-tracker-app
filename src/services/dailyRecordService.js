@@ -40,13 +40,14 @@ export const dailyRecordService = {
 
       const { data: record, error } = await supabase
         .from('daily_records')
-        .upsert(payload)
+        .upsert(payload, { onConflict: 'user_id,date' })
         .select()
         .single();
 
       if (error) throw error;
       return { record, error: null };
     } catch (err) {
+      console.error('upsertDailyRecord error:', err);
       return { record: null, error: err.message };
     }
   },
@@ -67,6 +68,7 @@ export const dailyRecordService = {
       if (error) throw error;
       return { completed: data || [], error: null };
     } catch (err) {
+      console.error('getCompletedTasks error:', err);
       return { completed: [], error: err.message };
     }
   },
@@ -83,11 +85,12 @@ export const dailyRecordService = {
           task_id: taskId,
           date,
           completed_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'user_id,task_id,date' });
 
       if (error) throw error;
       return { error: null };
     } catch (err) {
+      console.error('recordTaskCompletion error:', err);
       return { error: err.message };
     }
   },
