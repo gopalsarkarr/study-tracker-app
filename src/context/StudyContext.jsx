@@ -28,33 +28,42 @@ import confetti from 'canvas-confetti';
 
 const StudyContext = createContext(null);
 
-function getLocalUserCache(userId) {
-  if (!userId) return null;
+function getStoredData(userId) {
   try {
-    const raw = localStorage.getItem(`aura_study_cache_${userId}`);
+    const key = userId ? `aura_study_cache_${userId}` : 'aura_study_guest_data';
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function saveLocalUserCache(userId, data) {
-  if (!userId) return;
+function saveStoredData(userId, data) {
   try {
-    const existing = getLocalUserCache(userId) || {};
-    localStorage.setItem(`aura_study_cache_${userId}`, JSON.stringify({ ...existing, ...data }));
+    const key = userId ? `aura_study_cache_${userId}` : 'aura_study_guest_data';
+    const raw = localStorage.getItem(key);
+    const existing = raw ? JSON.parse(raw) : {};
+    localStorage.setItem(key, JSON.stringify({ ...existing, ...data }));
   } catch (e) {
-    console.error('Failed to save user cache:', e);
+    console.error('Failed to save to localStorage:', e);
   }
+}
+
+function getLocalUserCache(userId) {
+  return getStoredData(userId);
+}
+
+function saveLocalUserCache(userId, data) {
+  saveStoredData(userId, data);
 }
 
 export function StudyProvider({ children }) {
   const { user } = useAuth();
   const todayISO = useMemo(() => getTodayDateString(), []);
 
-  // Read instant cache for authenticated user to prevent 0.1s old data flash
+  // Read instant cache for authenticated user or guest to prevent 0.1s old data flash
   const initialCache = useMemo(() => {
-    return user ? getLocalUserCache(user.id) : null;
+    return getStoredData(user?.id);
   }, [user?.id]);
 
   // Theme & Audio settings
@@ -81,16 +90,12 @@ export function StudyProvider({ children }) {
   const [selectedDate, setSelectedDate] = useState(todayISO);
   const [celebration, setCelebration] = useState(null);
 
-  // Entities initialized cache-first for zero flicker
-  const [categories, setCategories] = useState(() => initialCache?.categories || DEFAULT_CATEGORIES);
-  const [tasks, setTasks] = useState(() => initialCache?.tasks || DEFAULT_TASKS);
-  const [dailyHistory, setDailyHistory] = useState(() => {
-    if (initialCache?.dailyHistory) return initialCache.dailyHistory;
-    const { history } = generateRealisticHistory(todayISO, DEFAULT_TASKS, DEFAULT_CATEGORIES);
-    return history;
-  });
-  const [cloudScore, setCloudScore] = useState(() => initialCache?.cloudScore || { current_score: 742, highest_score: 770 });
-  const [cloudStreak, setCloudStreak] = useState(() => initialCache?.cloudStreak || { current_streak: 7, longest_streak: 14 });
+  // Entities initialized from local storage cache; fresh users start clean with NO default categories
+  const [categories, setCategories] = useState(() => initialCache?.categories || []);
+  const [tasks, setTasks] = useState(() => initialCache?.tasks || []);
+  const [dailyHistory, setDailyHistory] = useState(() => initialCache?.dailyHistory || {});
+  const [cloudScore, setCloudScore] = useState(() => initialCache?.cloudScore || { current_score: 500, highest_score: 500 });
+  const [cloudStreak, setCloudStreak] = useState(() => initialCache?.cloudStreak || { current_streak: 0, longest_streak: 0 });
   const [achievements, setAchievements] = useState(() => initialCache?.achievements || []);
 
   // Target Vision Board & Motivation Photos state (Cache-first + Cloud-synchronized)
@@ -171,13 +176,22 @@ export function StudyProvider({ children }) {
   // Load User Data from Supabase Cloud upon Login
   useEffect(() => {
     if (!user) {
-      // Unauthenticated fallback: demo mode
-      const { history } = generateRealisticHistory(todayISO, DEFAULT_TASKS, DEFAULT_CATEGORIES);
-      setCategories(DEFAULT_CATEGORIES);
-      setTasks(DEFAULT_TASKS);
-      setDailyHistory(history);
-      setCloudScore({ current_score: 742, highest_score: 770 });
-      setCloudStreak({ current_streak: 7, longest_streak: 14 });
+      // Unauthenticated / Guest mode: Load from local storage
+      const guestData = getStoredData(null);
+      if (guestData) {
+        setCategories(guestData.categories || []);
+        setTasks(guestData.tasks || []);
+        setDailyHistory(guestData.dailyHistory || {});
+        setCloudScore(guestData.cloudScore || { current_score: 500, highest_score: 500 });
+        setCloudStreak(guestData.cloudStreak || { current_streak: 0, longest_streak: 0 });
+        if (guestData.visionPhotos) setVisionPhotos(guestData.visionPhotos);
+      } else {
+        setCategories([]);
+        setTasks([]);
+        setDailyHistory({});
+        setCloudScore({ current_score: 500, highest_score: 500 });
+        setCloudStreak({ current_streak: 0, longest_streak: 0 });
+      }
       setSyncStatus('synced');
       return;
     }
@@ -191,14 +205,14 @@ export function StudyProvider({ children }) {
         let { categories: cloudCats } = await categoryService.getCategories(user.id);
         let cloudTasks = [];
 
-        if (!cloudCats || cloudCats.length === 0) {
-          // New user: seed default categories & starter tasks in cloud
-          const seeded = await categoryService.seedDefaultsForUser(user.id);
-          cloudCats = seeded.categories;
-          cloudTasks = seeded.tasks;
-        } else {
+        if (cloudCats && cloudCats.length > 0) {
+          // Existing/Old user: fetch their existing tasks from Supabase
           const { tasks: t } = await taskService.getTasks(user.id);
           cloudTasks = t || [];
+        } else {
+          // New user: start with a completely clean workspace (no default categories seeded)
+          cloudCats = [];
+          cloudTasks = [];
         }
 
         if (isCancelled) return;
@@ -597,19 +611,17 @@ export function StudyProvider({ children }) {
     };
     setDailyHistory(nextDailyHistory);
 
-    if (user?.id) {
-      saveLocalUserCache(user.id, {
-        dailyHistory: nextDailyHistory,
-        cloudScore: {
-          current_score: newCreditScore,
-          highest_score: Math.max(newCreditScore, highestScore),
-        },
-        cloudStreak: {
-          current_streak: currentStreak,
-          longest_streak: Math.max(currentStreak, cloudStreak?.longest_streak || 0),
-        },
-      });
-    }
+    saveStoredData(user?.id, {
+      dailyHistory: nextDailyHistory,
+      cloudScore: {
+        current_score: newCreditScore,
+        highest_score: Math.max(newCreditScore, highestScore),
+      },
+      cloudStreak: {
+        current_streak: currentStreak,
+        longest_streak: Math.max(currentStreak, cloudStreak?.longest_streak || 0),
+      },
+    });
 
     if (!isAlreadyCompleted && deltaStats.completionPercentage === 100 && scheduledForDay.length > 0) {
       setTimeout(() => {
@@ -663,7 +675,7 @@ export function StudyProvider({ children }) {
     // Optimistic local state & cache update
     setTasks(prev => {
       const updated = [newTask, ...prev];
-      if (user) saveLocalUserCache(user.id, { tasks: updated });
+      saveStoredData(user?.id, { tasks: updated });
       return updated;
     });
     if (soundEnabled) playSound('click', false);
@@ -679,7 +691,7 @@ export function StudyProvider({ children }) {
             id: cloudCreated.id,
             linkUrl: cloudCreated.link_url || newTask.linkUrl || '',
           } : t));
-          saveLocalUserCache(user.id, { tasks: updated });
+          saveStoredData(user.id, { tasks: updated });
           return updated;
         });
       } else {
@@ -694,7 +706,7 @@ export function StudyProvider({ children }) {
   const updateTask = useCallback(async (taskId, updatedData) => {
     setTasks(prev => {
       const updated = prev.map(t => (t.id === taskId ? { ...t, ...updatedData } : t));
-      if (user) saveLocalUserCache(user.id, { tasks: updated });
+      saveStoredData(user?.id, { tasks: updated });
       return updated;
     });
     if (soundEnabled) playSound('click', false);
@@ -710,7 +722,7 @@ export function StudyProvider({ children }) {
   const deleteTask = useCallback(async (taskId) => {
     setTasks(prev => {
       const updated = prev.filter(t => t.id !== taskId);
-      if (user) saveLocalUserCache(user.id, { tasks: updated });
+      saveStoredData(user?.id, { tasks: updated });
       return updated;
     });
     if (soundEnabled) playSound('click', false);
@@ -751,7 +763,7 @@ export function StudyProvider({ children }) {
 
     setCategories(prev => {
       const updated = [...prev, newCat];
-      if (user) saveLocalUserCache(user.id, { categories: updated });
+      saveStoredData(user?.id, { categories: updated });
       return updated;
     });
 
@@ -763,7 +775,7 @@ export function StudyProvider({ children }) {
   const updateCategory = useCallback(async (catId, updatedData) => {
     setCategories(prev => {
       const updated = prev.map(c => (c.id === catId ? { ...c, ...updatedData } : c));
-      if (user) saveLocalUserCache(user.id, { categories: updated });
+      saveStoredData(user?.id, { categories: updated });
       return updated;
     });
     if (soundEnabled) playSound('click', false);
@@ -778,18 +790,16 @@ export function StudyProvider({ children }) {
   // Delete Category
   const deleteCategory = useCallback(async (catId) => {
     let updatedCats = [];
+    let updatedTasks = [];
     setCategories(prev => {
       updatedCats = prev.filter(c => c.id !== catId);
       return updatedCats;
     });
-    let updatedTasks = [];
     setTasks(prev => {
       updatedTasks = prev.filter(t => t.categoryId !== catId);
       return updatedTasks;
     });
-    if (user) {
-      saveLocalUserCache(user.id, { categories: updatedCats, tasks: updatedTasks });
-    }
+    saveStoredData(user?.id, { categories: updatedCats, tasks: updatedTasks });
     if (soundEnabled) playSound('click', false);
 
     if (user) {

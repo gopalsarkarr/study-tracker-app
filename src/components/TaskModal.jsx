@@ -97,6 +97,11 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
       return;
     }
 
+    if (!categoryId) {
+      setError('Please create a category first before adding missions.');
+      return;
+    }
+
     const payload = {
       name: name.trim(),
       categoryId,
@@ -214,23 +219,29 @@ export default function TaskModal({ isOpen, onClose, initialTask = null, default
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 light:text-slate-600 mb-1.5">
                 Category
               </label>
-              <select
-                value={categoryId}
-                onChange={e => {
-                  const newCatId = e.target.value;
-                  setCategoryId(newCatId);
-                  const selectedCat = categories.find(c => c.id === newCatId);
-                  if (selectedCat?.isSkillCategory && points < 20) setPoints(35);
-                  if (selectedCat?.name?.includes('Routine') && points > 10) setPoints(5);
-                }}
-                className="w-full px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 focus:outline-none focus:border-indigo-500 text-sm"
-              >
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.importance})
-                  </option>
-                ))}
-              </select>
+              {categories.length === 0 ? (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                  ⚠️ No categories created yet. Please close this and create a category first.
+                </div>
+              ) : (
+                <select
+                  value={categoryId}
+                  onChange={e => {
+                    const newCatId = e.target.value;
+                    setCategoryId(newCatId);
+                    const selectedCat = categories.find(c => c.id === newCatId);
+                    if (selectedCat?.isSkillCategory && points < 20) setPoints(35);
+                    if (selectedCat?.name?.includes('Routine') && points > 10) setPoints(5);
+                  }}
+                  className="w-full px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-300 text-white light:text-slate-900 focus:outline-none focus:border-indigo-500 text-sm"
+                >
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.importance})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Points & Priority Grid */}

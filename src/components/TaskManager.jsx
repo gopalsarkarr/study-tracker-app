@@ -18,7 +18,9 @@ import {
   Layers,
   Filter,
   Eye,
-  EyeOff
+  EyeOff,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -84,6 +86,11 @@ export default function TaskManager() {
   }, [categories, tasks, todayRecord, todayISO]);
 
   const openAddTask = (catId = '') => {
+    if (categories.length === 0) {
+      setEditingCategory(null);
+      setCategoryModalOpen(true);
+      return;
+    }
     setEditingTask(null);
     const chosen = catId || (activeTab !== 'all' ? activeTab : categories[0]?.id || '');
     setDefaultCategoryForAdd(chosen);
@@ -225,8 +232,31 @@ export default function TaskManager() {
       </div>
 
       {/* Categorized Sections */}
-      <div className="space-y-8">
-        {displayedCategories.map(category => {
+      {categories.length === 0 ? (
+        <div className="bg-slate-900/50 dark:bg-slate-900/50 light:bg-white rounded-3xl p-8 sm:p-12 border-2 border-dashed border-slate-800/90 dark:border-slate-800/90 light:border-slate-300 text-center shadow-xl">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center mb-4">
+            <FolderPlus className="w-8 h-8 text-indigo-400" />
+          </div>
+          <h3 className="text-lg sm:text-xl font-bold text-white light:text-slate-900 mb-2">
+            Welcome! Start by Creating Your First Category
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-400 light:text-slate-600 max-w-md mx-auto mb-6 leading-relaxed">
+            Your personal study workspace is completely fresh. Create custom categories (such as <strong>Skills & Study</strong>, <strong>Daily Routine</strong>, <strong>Fitness</strong>, or <strong>Academics</strong>) to organize and track your missions.
+          </p>
+          <button
+            onClick={() => {
+              setEditingCategory(null);
+              setCategoryModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-xl shadow-indigo-600/30 active:scale-95 transition-all"
+          >
+            <FolderPlus className="w-4 h-4" />
+            <span>Create First Category</span>
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {displayedCategories.map(category => {
           const IconComponent = ICON_MAP[category.icon] || ICON_MAP.default;
           const catTasks = tasks.filter(t => t.categoryId === category.id);
           const activeTasks = catTasks.filter(t => isTaskScheduledForDay(t, todayISO));
@@ -296,16 +326,26 @@ export default function TaskManager() {
                     <span>Add</span>
                   </button>
 
-                  {/* Custom category delete option (if not default) */}
-                  {!['skills-study', 'daily-routine'].includes(category.id) && (
-                    <button
-                      onClick={() => promptDeleteCategory(category)}
-                      className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                      title="Delete Category"
-                    >
-                      ×
-                    </button>
-                  )}
+                  {/* Category edit option */}
+                  <button
+                    onClick={() => {
+                      setEditingCategory(category);
+                      setCategoryModalOpen(true);
+                    }}
+                    className="p-1.5 rounded-xl text-slate-500 hover:text-indigo-400 hover:bg-slate-800 transition-colors"
+                    title="Edit Category"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Category delete option */}
+                  <button
+                    onClick={() => promptDeleteCategory(category)}
+                    className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                    title="Delete Category"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
@@ -403,6 +443,7 @@ export default function TaskManager() {
           );
         })}
       </div>
+      )}
 
       {/* Modals */}
       <TaskModal
